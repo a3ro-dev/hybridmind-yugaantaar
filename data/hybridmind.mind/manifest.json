@@ -1,0 +1,22 @@
+{
+  "format": "HybridMind",
+  "version": "1.0.0",
+  "name": "hybridmind",
+  "created": "2025-11-27T19:25:52.954338",
+  "modified": "2025-11-27T19:33:34.507428+00:00",
+  "components": {
+    "sqlite": "store.db",
+    "vector_index": "vectors.faiss",
+    "vector_map": "vectors.map",
+    "graph": "graph.nx"
+  },
+  "stats": {
+    "nodes": 151,
+    "edges": 372,
+    "vectors": 151
+  },
+  "metadata": {
+    "description": "HybridMind Demo Database",
+    "author": "CodeHashira"
+  }
+}

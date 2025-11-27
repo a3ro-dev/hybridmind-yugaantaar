@@ -6,11 +6,13 @@ Provides singleton instances of storage and engine components.
 import logging
 from functools import lru_cache
 from typing import Generator
+from pathlib import Path
 
 from config import settings
 from storage.sqlite_store import SQLiteStore
 from storage.vector_index import VectorIndex
 from storage.graph_index import GraphIndex
+from storage.mindfile import MindFile
 from engine.embedding import EmbeddingEngine
 from engine.vector_search import VectorSearchEngine
 from engine.graph_search import GraphSearchEngine
@@ -39,16 +41,26 @@ class DatabaseManager:
         
         logger.info("Initializing HybridMind database components...")
         
-        # Ensure data directory exists
-        settings.get_data_dir()
+        # Initialize .mind file (HybridMind's native format)
+        self.mind_file = MindFile(settings.mind_file_path)
+        if not self.mind_file.exists:
+            logger.info(f"Creating new .mind database: {settings.mind_file_path}")
+            self.mind_file.initialize(metadata={
+                "description": "HybridMind Vector + Graph Database",
+                "embedding_model": settings.embedding_model,
+                "embedding_dimension": settings.embedding_dimension
+            })
         
-        # Initialize storage components
-        self.sqlite_store = SQLiteStore(settings.database_path)
+        # Get paths from .mind file
+        paths = self.mind_file.get_paths()
+        
+        # Initialize storage components using .mind paths
+        self.sqlite_store = SQLiteStore(paths["sqlite"])
         self.vector_index = VectorIndex(
             dimension=settings.embedding_dimension,
-            index_path=settings.vector_index_path
+            index_path=paths["vector_index"]
         )
-        self.graph_index = GraphIndex(index_path=settings.graph_index_path)
+        self.graph_index = GraphIndex(index_path=paths["graph"])
         
         # Initialize embedding engine
         self.embedding_engine = EmbeddingEngine(
@@ -118,10 +130,19 @@ class DatabaseManager:
         }
     
     def save_indexes(self):
-        """Save indexes to disk."""
+        """Save indexes to disk and update .mind manifest."""
         try:
             self.vector_index.save()
             self.graph_index.save()
+            
+            # Update manifest with current stats
+            stats = self.get_stats()
+            self.mind_file.update_stats(
+                nodes=stats["total_nodes"],
+                edges=stats["total_edges"],
+                vectors=stats["vector_index_size"]
+            )
+            
             logger.info("Indexes saved to disk")
         except Exception as e:
             logger.error(f"Error saving indexes: {e}")

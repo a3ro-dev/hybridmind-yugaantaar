@@ -2,6 +2,8 @@
 
 **Vector + Graph Native Database** - Hybrid retrieval combining semantic search with graph relationships.
 
+> 🧠 Uses the **`.mind`** file format — a self-contained database bundling vectors, graphs, and metadata.
+
 ## Quick Start
 
 ```bash
@@ -22,6 +24,44 @@ streamlit run ui/app.py
 - API: http://localhost:8000/docs
 - UI: http://localhost:8501
 
+## The `.mind` File Format
+
+HybridMind uses **`.mind`** as its native database extension — a directory-based format that bundles everything:
+
+```
+hybridmind.mind/
+├── manifest.json      # Version, stats, metadata
+├── store.db           # SQLite database (nodes, edges)
+├── vectors.faiss      # FAISS vector index
+├── vectors.map        # ID mappings
+└── graph.nx           # NetworkX graph (pickle)
+```
+
+### Why `.mind`?
+
+| Feature | Benefit |
+|---------|---------|
+| **Self-contained** | One "file" contains everything |
+| **Portable** | Export as `.mind.zip`, share anywhere |
+| **Versioned** | Manifest tracks format version |
+| **Inspectable** | `manifest.json` shows stats |
+
+### CLI Commands
+
+```bash
+# Show database info
+python -m cli.mind info data/hybridmind.mind
+
+# Create new database
+python -m cli.mind create knowledge.mind
+
+# Export for sharing
+python -m cli.mind export data/hybridmind.mind backup.mind.zip
+
+# List all .mind files
+python -m cli.mind list data/
+```
+
 ## Project Structure
 
 ```
@@ -32,24 +72,28 @@ yugaantar/
 │   ├── nodes.py         # Node CRUD
 │   ├── edges.py         # Edge CRUD
 │   ├── search.py        # Search endpoints
+│   ├── comparison.py    # DB comparison endpoints
 │   └── bulk.py          # Bulk operations
 ├── engine/              # Core algorithms
 │   ├── embedding.py     # Text embeddings
 │   ├── vector_search.py # FAISS vector search
 │   ├── graph_search.py  # NetworkX graph traversal
 │   ├── hybrid_ranker.py # CRS algorithm
+│   ├── comparison.py    # Neo4j/ChromaDB comparison
 │   └── cache.py         # Query caching
 ├── storage/             # Data layer
 │   ├── sqlite_store.py  # Persistent storage
 │   ├── vector_index.py  # FAISS index
-│   └── graph_index.py   # NetworkX graph
+│   ├── graph_index.py   # NetworkX graph
+│   └── mindfile.py      # .mind format handler
+├── cli/                 # Command-line tools
+│   ├── main.py          # Main CLI
+│   └── mind.py          # .mind file manager
 ├── middleware/          # Rate limiting
 ├── models/              # Pydantic schemas
 ├── ui/app.py            # Streamlit dashboard
 ├── data/                # Database files
-│   ├── hybridmind.db    # SQLite
-│   ├── vector.index     # FAISS
-│   └── graph.pkl        # NetworkX
+│   └── hybridmind.mind/ # .mind database
 └── tests/               # Test suite
 ```
 

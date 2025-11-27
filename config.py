@@ -25,16 +25,19 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = False
     
-    # Database
-    database_path: str = "data/hybridmind.db"
+    # Database (.mind format)
+    # The .mind extension is HybridMind's native database format
+    # It bundles SQLite + FAISS + NetworkX into a single directory
+    mind_file_path: str = "data/hybridmind.mind"
     
-    # Vector Index
-    vector_index_path: str = "data/vector.index"
+    # Legacy paths (for backward compatibility)
+    database_path: str = "data/hybridmind.mind/store.db"
+    vector_index_path: str = "data/hybridmind.mind/vectors"
+    graph_index_path: str = "data/hybridmind.mind/graph.nx"
+    
+    # Embedding
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_dimension: int = 384
-    
-    # Graph Index
-    graph_index_path: str = "data/graph.pkl"
     
     # Search Defaults
     default_top_k: int = 10

@@ -435,6 +435,58 @@ async def create_snapshot():
         )
 
 
+@app.get("/database", tags=["Utility"])
+async def get_database_info():
+    """
+    Get information about the .mind database file.
+    
+    HybridMind uses the `.mind` extension as its native database format.
+    A .mind file is a directory containing:
+    - store.db: SQLite database
+    - vectors.faiss: FAISS vector index
+    - graph.nx: NetworkX graph
+    - manifest.json: Metadata and stats
+    """
+    try:
+        db_manager = get_db_manager()
+        return db_manager.mind_file.get_info()
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+
+@app.post("/database/export", tags=["Utility"])
+async def export_database(compress: bool = True):
+    """
+    Export the .mind database to a portable archive.
+    
+    Creates a .mind.zip file that can be shared and imported elsewhere.
+    """
+    try:
+        db_manager = get_db_manager()
+        output = f"data/export_{int(time.time())}"
+        result = db_manager.mind_file.export(output, compress=compress)
+        
+        if result:
+            return {
+                "status": "success",
+                "path": result,
+                "message": "Database exported successfully"
+            }
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Export failed"}
+            )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

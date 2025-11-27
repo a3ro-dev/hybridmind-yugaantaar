@@ -50,11 +50,19 @@ def test_crud_operations():
     if r.status_code == 200:
         print(f"  Updated text: {r.json()['text'][:50]}...")
     
+    # Get an existing node to connect to
+    existing_nodes = requests.get(f"{BASE_URL}/nodes", params={"limit": 1}).json()
+    target_node_id = existing_nodes[0]["id"] if existing_nodes else None
+    
     # CREATE EDGE (connect to existing node)
     print("\n[POST /edges] Creating test edge...")
+    if not target_node_id:
+        print("  ⚠ No existing nodes to connect to")
+        return
+    
     r = requests.post(f"{BASE_URL}/edges", json={
         "source_id": created_node_id,
-        "target_id": "arxiv-0197",  # Human-in-the-loop AI paper
+        "target_id": target_node_id,
         "type": "related_to",
         "weight": 0.85
     })
@@ -114,8 +122,18 @@ def test_graph_search():
     print("\n" + "=" * 60)
     print("3. GRAPH SEARCH")
     print("=" * 60)
+    
+    # Get an existing node with edges
+    existing_nodes = requests.get(f"{BASE_URL}/nodes", params={"limit": 5}).json()
+    start_node_id = existing_nodes[0]["id"] if existing_nodes else None
+    
+    if not start_node_id:
+        print("  ⚠ No existing nodes for graph search")
+        return {}
+    
+    print(f"  Starting from node: {start_node_id[:20]}...")
     r = requests.get(f"{BASE_URL}/search/graph", params={
-        "start_id": "arxiv-0197",
+        "start_id": start_node_id,
         "depth": 2,
         "direction": "both"
     })
@@ -192,7 +210,18 @@ def test_path_finding():
     print("\n" + "=" * 60)
     print("6. PATH FINDING (Multi-hop)")
     print("=" * 60)
-    r = requests.get(f"{BASE_URL}/search/path/arxiv-0001/arxiv-0050")
+    
+    # Get two existing nodes
+    existing_nodes = requests.get(f"{BASE_URL}/nodes", params={"limit": 10}).json()
+    if len(existing_nodes) < 2:
+        print("  ⚠ Not enough nodes for path finding")
+        return {}
+    
+    source_id = existing_nodes[0]["id"]
+    target_id = existing_nodes[5]["id"] if len(existing_nodes) > 5 else existing_nodes[1]["id"]
+    
+    print(f"  Finding path: {source_id[:15]}... → {target_id[:15]}...")
+    r = requests.get(f"{BASE_URL}/search/path/{source_id}/{target_id}")
     print(f"Status: {r.status_code}")
     data = r.json()
     if data.get("path_exists"):
