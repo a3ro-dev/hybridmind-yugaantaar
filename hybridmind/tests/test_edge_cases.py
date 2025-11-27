@@ -311,7 +311,8 @@ class TestEdgeEdgeCases:
         """Test getting edges for node with no edges."""
         node = client.post("/nodes", json={"text": "Isolated node", "metadata": {}}).json()
         
-        response = client.get(f"/nodes/{node['id']}/edges")
+        # Endpoint is /edges/node/{node_id}
+        response = client.get(f"/edges/node/{node['id']}")
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 0
@@ -336,16 +337,17 @@ class TestEdgeEdgeCases:
             "type": "incoming_test"
         })
         
+        # Endpoint is /edges/node/{node_id}
         # Get all edges
-        response_both = client.get(f"/nodes/{node1['id']}/edges", params={"direction": "both"})
+        response_both = client.get(f"/edges/node/{node1['id']}", params={"direction": "both"})
         assert response_both.status_code == 200
         
         # Get outgoing only
-        response_out = client.get(f"/nodes/{node1['id']}/edges", params={"direction": "outgoing"})
+        response_out = client.get(f"/edges/node/{node1['id']}", params={"direction": "outgoing"})
         assert response_out.status_code == 200
         
         # Get incoming only
-        response_in = client.get(f"/nodes/{node1['id']}/edges", params={"direction": "incoming"})
+        response_in = client.get(f"/edges/node/{node1['id']}", params={"direction": "incoming"})
         assert response_in.status_code == 200
 
 
