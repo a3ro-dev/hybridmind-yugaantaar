@@ -303,4 +303,3 @@ class VectorIndex:
             self._vectors = []
         self.id_map = {}
         self.reverse_map = {}
-

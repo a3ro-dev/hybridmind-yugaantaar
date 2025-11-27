@@ -128,6 +128,27 @@ class TestVectorIndex:
         assert index.remove("test-node")
         assert index.size == 0
     
+    def test_remove_with_multiple_vectors(self, index):
+        """Test removing one vector when multiple exist (exercises reconstruct)."""
+        # Add multiple vectors
+        for i in range(5):
+            vec = np.random.randn(384).astype(np.float32)
+            index.add(f"node-{i}", vec)
+        
+        assert index.size == 5
+        
+        # Remove middle node
+        assert index.remove("node-2")
+        assert index.size == 4
+        
+        # Verify remaining nodes are still searchable
+        query = np.random.randn(384).astype(np.float32)
+        results = index.search(query, top_k=10)
+        result_ids = [r[0] for r in results]
+        
+        assert "node-2" not in result_ids
+        assert "node-0" in result_ids or "node-1" in result_ids  # At least some remain
+    
     def test_save_and_load(self, index):
         """Test persistence."""
         vec = np.random.randn(384).astype(np.float32)
