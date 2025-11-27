@@ -110,10 +110,9 @@ class VectorIndex:
         for idx, nid in sorted(self.id_map.items()):
             if nid != node_id:
                 if self._use_faiss:
-                    vec = faiss.rev_swig_ptr(
-                        self.index.get_xb() + idx * self.dimension,
-                        self.dimension
-                    ).copy()
+                    # Reconstruct vector from FAISS index
+                    vec = np.zeros(self.dimension, dtype=np.float32)
+                    self.index.reconstruct(idx, vec)
                 else:
                     vec = self._vectors[idx]
                 remaining.append(vec)

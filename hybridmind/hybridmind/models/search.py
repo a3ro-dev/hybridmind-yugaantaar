@@ -3,11 +3,21 @@ Search request and response models for HybridMind.
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class VectorSearchRequest(BaseModel):
     """Request model for vector similarity search."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query_text": "transformer attention mechanisms in NLP",
+                "top_k": 10,
+                "min_score": 0.5
+            }
+        }
+    )
     
     query_text: str = Field(
         ...,
@@ -31,19 +41,21 @@ class VectorSearchRequest(BaseModel):
         default=None,
         description="Filter results by metadata fields"
     )
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "query_text": "transformer attention mechanisms in NLP",
-                "top_k": 10,
-                "min_score": 0.5
-            }
-        }
 
 
 class GraphSearchRequest(BaseModel):
     """Request model for graph traversal search."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "start_id": "550e8400-e29b-41d4-a716-446655440000",
+                "depth": 2,
+                "edge_types": ["cites", "related_to"],
+                "direction": "both"
+            }
+        }
+    )
     
     start_id: str = Field(
         ...,
@@ -71,20 +83,23 @@ class GraphSearchRequest(BaseModel):
         if v not in valid:
             raise ValueError(f"direction must be one of {valid}")
         return v
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "start_id": "550e8400-e29b-41d4-a716-446655440000",
-                "depth": 2,
-                "edge_types": ["cites", "related_to"],
-                "direction": "both"
-            }
-        }
 
 
 class HybridSearchRequest(BaseModel):
     """Request model for hybrid vector + graph search."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query_text": "deep learning optimization techniques",
+                "top_k": 10,
+                "vector_weight": 0.6,
+                "graph_weight": 0.4,
+                "anchor_nodes": ["550e8400-e29b-41d4-a716-446655440000"],
+                "max_depth": 2
+            }
+        }
+    )
     
     query_text: str = Field(
         ...,
@@ -136,22 +151,24 @@ class HybridSearchRequest(BaseModel):
     def validate_weights(cls, v: float, info) -> float:
         # Note: We don't enforce sum=1 to allow flexibility
         return v
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "query_text": "deep learning optimization techniques",
-                "top_k": 10,
-                "vector_weight": 0.6,
-                "graph_weight": 0.4,
-                "anchor_nodes": ["550e8400-e29b-41d4-a716-446655440000"],
-                "max_depth": 2
-            }
-        }
 
 
 class SearchResult(BaseModel):
     """Individual search result."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "node_id": "550e8400-e29b-41d4-a716-446655440001",
+                "text": "BERT is a transformer-based model...",
+                "metadata": {"title": "BERT Paper"},
+                "vector_score": 0.85,
+                "graph_score": 0.72,
+                "combined_score": 0.80,
+                "reasoning": "High semantic similarity (0.85) + 2-hop citation connection"
+            }
+        }
+    )
     
     node_id: str = Field(description="Node ID")
     text: str = Field(description="Node text content")
@@ -180,37 +197,13 @@ class SearchResult(BaseModel):
         default="",
         description="Human-readable explanation of why this result was returned"
     )
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "node_id": "550e8400-e29b-41d4-a716-446655440001",
-                "text": "BERT is a transformer-based model...",
-                "metadata": {"title": "BERT Paper"},
-                "vector_score": 0.85,
-                "graph_score": 0.72,
-                "combined_score": 0.80,
-                "reasoning": "High semantic similarity (0.85) + 2-hop citation connection"
-            }
-        }
 
 
 class SearchResponse(BaseModel):
     """Response model for search operations."""
     
-    results: List[SearchResult] = Field(description="Search results")
-    query_time_ms: float = Field(description="Query execution time in milliseconds")
-    total_candidates: int = Field(
-        default=0,
-        description="Total number of candidates evaluated"
-    )
-    search_type: str = Field(
-        default="hybrid",
-        description="Type of search performed: 'vector', 'graph', or 'hybrid'"
-    )
-    
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "results": [
                     {
@@ -228,20 +221,25 @@ class SearchResponse(BaseModel):
                 "search_type": "hybrid"
             }
         }
+    )
+    
+    results: List[SearchResult] = Field(description="Search results")
+    query_time_ms: float = Field(description="Query execution time in milliseconds")
+    total_candidates: int = Field(
+        default=0,
+        description="Total number of candidates evaluated"
+    )
+    search_type: str = Field(
+        default="hybrid",
+        description="Type of search performed: 'vector', 'graph', or 'hybrid'"
+    )
 
 
 class StatsResponse(BaseModel):
     """Response model for database statistics."""
     
-    total_nodes: int
-    total_edges: int
-    edge_types: Dict[str, int]
-    avg_edges_per_node: float
-    vector_index_size: int
-    database_size_bytes: int
-    
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total_nodes": 500,
                 "total_edges": 1200,
@@ -251,4 +249,11 @@ class StatsResponse(BaseModel):
                 "database_size_bytes": 5242880
             }
         }
-
+    )
+    
+    total_nodes: int
+    total_edges: int
+    edge_types: Dict[str, int]
+    avg_edges_per_node: float
+    vector_index_size: int
+    database_size_bytes: int

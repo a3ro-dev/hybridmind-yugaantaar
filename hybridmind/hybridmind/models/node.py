@@ -4,11 +4,25 @@ Node data models for HybridMind.
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class NodeCreate(BaseModel):
     """Request model for creating a new node."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "text": "Attention mechanisms allow neural networks to focus on relevant parts of the input.",
+                "metadata": {
+                    "title": "Attention Is All You Need",
+                    "tags": ["transformer", "attention", "NLP"],
+                    "source": "arxiv",
+                    "year": 2017
+                }
+            }
+        }
+    )
     
     text: str = Field(
         ...,
@@ -24,23 +38,20 @@ class NodeCreate(BaseModel):
         default=None,
         description="Pre-computed embedding vector (optional, will be generated if not provided)"
     )
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "text": "Attention mechanisms allow neural networks to focus on relevant parts of the input.",
-                "metadata": {
-                    "title": "Attention Is All You Need",
-                    "tags": ["transformer", "attention", "NLP"],
-                    "source": "arxiv",
-                    "year": 2017
-                }
-            }
-        }
 
 
 class NodeUpdate(BaseModel):
     """Request model for updating a node."""
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "text": "Updated text content about transformers",
+                "metadata": {"tags": ["transformer", "updated"]},
+                "regenerate_embedding": True
+            }
+        }
+    )
     
     text: Optional[str] = Field(
         default=None,
@@ -56,15 +67,6 @@ class NodeUpdate(BaseModel):
         default=True,
         description="Whether to regenerate the embedding after text update"
     )
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "text": "Updated text content about transformers",
-                "metadata": {"tags": ["transformer", "updated"]},
-                "regenerate_embedding": True
-            }
-        }
 
 
 class EdgeSummary(BaseModel):
@@ -80,19 +82,9 @@ class EdgeSummary(BaseModel):
 class NodeResponse(BaseModel):
     """Response model for node operations."""
     
-    id: str = Field(description="Unique node identifier (UUID)")
-    text: str = Field(description="Text content of the node")
-    metadata: Dict[str, Any] = Field(description="Node metadata")
-    created_at: datetime = Field(description="Creation timestamp")
-    updated_at: datetime = Field(description="Last update timestamp")
-    edges: List[EdgeSummary] = Field(
-        default_factory=list,
-        description="Connected edges"
-    )
-    
-    class Config:
-        from_attributes = True
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "text": "Attention mechanisms allow neural networks...",
@@ -110,6 +102,17 @@ class NodeResponse(BaseModel):
                 ]
             }
         }
+    )
+    
+    id: str = Field(description="Unique node identifier (UUID)")
+    text: str = Field(description="Text content of the node")
+    metadata: Dict[str, Any] = Field(description="Node metadata")
+    created_at: datetime = Field(description="Creation timestamp")
+    updated_at: datetime = Field(description="Last update timestamp")
+    edges: List[EdgeSummary] = Field(
+        default_factory=list,
+        description="Connected edges"
+    )
 
 
 class NodeWithEmbedding(NodeResponse):
@@ -121,16 +124,16 @@ class NodeWithEmbedding(NodeResponse):
 class NodeDeleteResponse(BaseModel):
     """Response model for node deletion."""
     
-    deleted: bool = Field(description="Whether deletion was successful")
-    node_id: str = Field(description="ID of the deleted node")
-    edges_removed: int = Field(description="Number of edges removed")
-    
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "deleted": True,
                 "node_id": "550e8400-e29b-41d4-a716-446655440000",
                 "edges_removed": 5
             }
         }
-
+    )
+    
+    deleted: bool = Field(description="Whether deletion was successful")
+    node_id: str = Field(description="ID of the deleted node")
+    edges_removed: int = Field(description="Number of edges removed")

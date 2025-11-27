@@ -52,9 +52,6 @@ class TestNodeEndpoints:
         data = response.json()
         assert "id" in data
         assert data["text"] == "Test node content for API testing"
-        
-        # Store ID for other tests
-        return data["id"]
     
     def test_get_node(self, client):
         """Test node retrieval."""
