@@ -21,14 +21,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from hybridmind.config import settings
-from hybridmind.api.nodes import router as nodes_router
-from hybridmind.api.edges import router as edges_router
-from hybridmind.api.search import router as search_router
-from hybridmind.api.bulk import router as bulk_router
-from hybridmind.api.dependencies import get_db_manager
-from hybridmind.engine.cache import get_query_cache
-from hybridmind.middleware.rate_limit import RateLimitMiddleware
+from config import settings
+from api.nodes import router as nodes_router
+from api.edges import router as edges_router
+from api.search import router as search_router
+from api.bulk import router as bulk_router
+from api.dependencies import get_db_manager
+from engine.cache import get_query_cache
+from middleware.rate_limit import RateLimitMiddleware
 
 # Configure logging
 logging.basicConfig(

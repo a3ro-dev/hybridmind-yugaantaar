@@ -1,0 +1,90 @@
+# HybridMind Production Docker Compose
+version: "3.8"
+
+services:
+  hybridmind:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8000:8000"
+    volumes:
+      - hybridmind_data:/app/data
+    environment:
+      - HYBRIDMIND_DATABASE_PATH=/app/data/hybridmind.db
+      - HYBRIDMIND_VECTOR_INDEX_PATH=/app/data/vector.index
+      - HYBRIDMIND_GRAPH_INDEX_PATH=/app/data/graph.pkl
+      - HYBRIDMIND_CACHE_TTL=300
+      - HYBRIDMIND_CACHE_SIZE=1000
+      - HYBRIDMIND_RATE_LIMIT_RPM=100
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+        reservations:
+          cpus: "1"
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/live')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["streamlit", "run", "ui/app.py", "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true"]
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://hybridmind:8000
+    depends_on:
+      hybridmind:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    restart: always
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+    restart: always
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=hybridmind
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: always
+
+volumes:
+  hybridmind_data:
+  prometheus_data:
+  grafana_data:

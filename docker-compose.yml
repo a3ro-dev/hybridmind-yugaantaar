@@ -1,0 +1,41 @@
+# HybridMind Development Docker Compose
+version: "3.8"
+
+services:
+  hybridmind:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./hybridmind:/app/hybridmind:ro
+    environment:
+      - HYBRIDMIND_DATABASE_PATH=/app/data/hybridmind.db
+      - HYBRIDMIND_VECTOR_INDEX_PATH=/app/data/vector.index
+      - HYBRIDMIND_GRAPH_INDEX_PATH=/app/data/graph.pkl
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["streamlit", "run", "ui/app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://hybridmind:8000
+    depends_on:
+      hybridmind:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  data:

@@ -1,0 +1,718 @@
+"""
+HybridMind - Vector + Graph Native Database
+Research-grade hybrid retrieval system with CRS algorithm
+"""
+
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+import streamlit as st
+import requests
+import time
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from typing import Optional, Dict
+from datetime import datetime
+
+st.set_page_config(
+    page_title="HybridMind",
+    page_icon="◆",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Scientific dark theme CSS
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+    
+    :root {
+        --bg-primary: #0d1117;
+        --bg-secondary: #161b22;
+        --bg-tertiary: #21262d;
+        --border: #30363d;
+        --text-primary: #e6edf3;
+        --text-secondary: #8b949e;
+        --accent-blue: #58a6ff;
+        --accent-green: #3fb950;
+        --accent-purple: #a371f7;
+        --accent-orange: #d29922;
+        --accent-red: #f85149;
+    }
+    
+    html, body, [class*="css"] {
+        font-family: 'Space Grotesk', -apple-system, sans-serif;
+        color: var(--text-primary);
+    }
+    
+    code, pre, .stCode, .mono {
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .main-header {
+        background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 20px 24px;
+        margin-bottom: 20px;
+    }
+    
+    .main-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+    
+    .main-subtitle {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 4px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .status-ok {
+        background: rgba(63, 185, 80, 0.15);
+        color: var(--accent-green);
+        border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+    
+    .status-error {
+        background: rgba(248, 81, 73, 0.15);
+        color: var(--accent-red);
+        border: 1px solid rgba(248, 81, 73, 0.3);
+    }
+    
+    .metric-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 12px 16px;
+    }
+    
+    .metric-label {
+        font-size: 0.65rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .formula-box {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent-purple);
+        border-radius: 4px;
+        padding: 12px 16px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1rem;
+        color: var(--accent-purple);
+        text-align: center;
+    }
+    
+    .data-table {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+    }
+    
+    .section-header {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-bottom: 8px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .result-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .score-pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .score-vector { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+    .score-graph { background: rgba(63, 185, 80, 0.2); color: var(--accent-green); }
+    .score-combined { background: rgba(163, 113, 247, 0.2); color: var(--accent-purple); }
+    
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0;
+        background: var(--bg-secondary);
+        border-radius: 6px 6px 0 0;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        padding: 10px 20px;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Configuration
+API_URL = st.sidebar.text_input("API", value="http://localhost:8000", label_visibility="collapsed")
+
+
+def api_call(endpoint: str, method: str = "GET", data: dict = None, timeout: int = 30) -> Optional[Dict]:
+    """Execute API request with timing."""
+    try:
+        url = f"{API_URL}{endpoint}"
+        start = time.perf_counter()
+        if method == "GET":
+            response = requests.get(url, params=data, timeout=timeout)
+        else:
+            response = requests.post(url, json=data, timeout=timeout)
+        elapsed = (time.perf_counter() - start) * 1000
+        response.raise_for_status()
+        result = response.json()
+        result["_client_latency_ms"] = elapsed
+        return result
+    except requests.exceptions.ConnectionError:
+        return None
+    except Exception as e:
+        st.error(f"API Error: {str(e)}")
+        return None
+
+
+def get_system_health() -> tuple[bool, dict]:
+    """Get comprehensive system health."""
+    health = api_call("/health")
+    if health and health.get("status") == "healthy":
+        return True, health
+    return False, {}
+
+
+def get_cache_stats() -> dict:
+    """Get cache statistics."""
+    return api_call("/cache/stats") or {}
+
+
+# ============================================================================
+# SIDEBAR
+# ============================================================================
+
+def render_sidebar() -> str:
+    """Sidebar with system metrics."""
+    st.sidebar.markdown("#### ◆ HybridMind")
+    st.sidebar.caption("Vector + Graph Native DB")
+    
+    # Connection status
+    is_ok, health = get_system_health()
+    if is_ok:
+        st.sidebar.markdown('<span class="status-badge status-ok">● ONLINE</span>', unsafe_allow_html=True)
+    else:
+        st.sidebar.markdown('<span class="status-badge status-error">● OFFLINE</span>', unsafe_allow_html=True)
+        st.sidebar.warning("Start API: `uvicorn hybridmind.main:app`")
+    
+    st.sidebar.markdown("---")
+    
+    # Navigation
+    page = st.sidebar.radio(
+        "Module",
+        ["Search", "System", "Explorer"],
+        label_visibility="collapsed"
+    )
+    
+    st.sidebar.markdown("---")
+    
+    # Quick stats
+    st.sidebar.markdown('<p class="section-header">Database</p>', unsafe_allow_html=True)
+    stats = api_call("/search/stats")
+    if stats:
+        c1, c2 = st.sidebar.columns(2)
+        c1.metric("Nodes", f"{stats.get('total_nodes', 0):,}")
+        c2.metric("Edges", f"{stats.get('total_edges', 0):,}")
+    
+    # Cache stats
+    cache = get_cache_stats()
+    if cache:
+        st.sidebar.markdown('<p class="section-header">Cache</p>', unsafe_allow_html=True)
+        hit_rate = cache.get('hit_rate', 0) * 100
+        st.sidebar.progress(hit_rate / 100, text=f"Hit Rate: {hit_rate:.1f}%")
+        st.sidebar.caption(f"Hits: {cache.get('hits', 0)} | Misses: {cache.get('misses', 0)}")
+    
+    # CRS Formula
+    st.sidebar.markdown("---")
+    st.sidebar.markdown('<p class="section-header">CRS Algorithm</p>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div class="formula-box">CRS = αV + βG</div>', unsafe_allow_html=True)
+    st.sidebar.caption("V: vector similarity | G: graph proximity")
+    
+    return page
+
+
+# ============================================================================
+# SEARCH PAGE
+# ============================================================================
+
+def render_search_page():
+    """Main search interface."""
+    st.markdown("### Hybrid Search")
+    st.caption("Contextual Relevance Scoring with vector-graph fusion")
+    
+    tabs = st.tabs(["Hybrid", "Vector", "Graph"])
+    
+    with tabs[0]:
+        render_hybrid_search()
+    with tabs[1]:
+        render_vector_search()
+    with tabs[2]:
+        render_graph_search()
+
+
+def render_hybrid_search():
+    """CRS-based hybrid search."""
+    query = st.text_input("Query", placeholder="semantic search query...", key="h_q")
+    
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        k = st.number_input("k", 1, 100, 10, key="h_k")
+    with c2:
+        alpha = st.slider("α (vector)", 0.0, 1.0, 0.6, 0.05, key="h_a")
+    with c3:
+        beta = st.slider("β (graph)", 0.0, 1.0, 0.4, 0.05, key="h_b")
+    with c4:
+        anchor = st.text_input("anchor", placeholder="node_id", key="h_anc")
+    
+    if st.button("Execute", key="h_btn", type="primary"):
+        if not query:
+            st.warning("Query required")
+            return
+        
+        payload = {
+            "query_text": query,
+            "top_k": k,
+            "vector_weight": alpha,
+            "graph_weight": beta
+        }
+        if anchor:
+            payload["anchor_nodes"] = [anchor]
+        
+        with st.spinner("Processing..."):
+            start = time.perf_counter()
+            results = api_call("/search/hybrid", method="POST", data=payload)
+            total_time = (time.perf_counter() - start) * 1000
+        
+        if results:
+            display_search_results(results, total_time, show_breakdown=True)
+
+
+def render_vector_search():
+    """Pure vector similarity search."""
+    query = st.text_input("Query", placeholder="semantic search...", key="v_q")
+    
+    c1, c2 = st.columns([1, 3])
+    with c1:
+        k = st.number_input("k", 1, 100, 10, key="v_k")
+    with c2:
+        min_score = st.slider("min_score", 0.0, 1.0, 0.0, 0.05, key="v_min")
+    
+    if st.button("Execute", key="v_btn", type="primary"):
+        if not query:
+            st.warning("Query required")
+            return
+        
+        with st.spinner("Embedding & searching..."):
+            start = time.perf_counter()
+            results = api_call("/search/vector", method="POST", data={
+                "query_text": query,
+                "top_k": k,
+                "min_score": min_score
+            })
+            total_time = (time.perf_counter() - start) * 1000
+        
+        if results:
+            display_search_results(results, total_time, score_key="vector_score")
+
+
+def render_graph_search():
+    """Graph traversal."""
+    start_id = st.text_input("Start Node", placeholder="node_id", key="g_start")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        depth = st.slider("max_depth", 1, 5, 2, key="g_d")
+    with c2:
+        direction = st.selectbox("direction", ["both", "outgoing", "incoming"], key="g_dir")
+    
+    if st.button("Traverse", key="g_btn", type="primary"):
+        if not start_id:
+            st.warning("Start node required")
+            return
+        
+        with st.spinner("Traversing..."):
+            start = time.perf_counter()
+            results = api_call("/search/graph", data={
+                "start_id": start_id,
+                "depth": depth,
+                "direction": direction
+            })
+            total_time = (time.perf_counter() - start) * 1000
+        
+        if results:
+            display_search_results(results, total_time, score_key="graph_score", show_path=True)
+
+
+def display_search_results(results: dict, client_time: float, score_key: str = "combined_score",
+                           show_breakdown: bool = False, show_path: bool = False):
+    """Render search results with metrics."""
+    
+    # Performance metrics
+    server_time = results.get('query_time_ms', 0)
+    candidates = results.get('total_candidates', 0)
+    cache_hit = results.get('cache_hit', False)
+    
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Server", f"{server_time:.1f}ms")
+    c2.metric("Client", f"{client_time:.1f}ms")
+    c3.metric("Candidates", f"{candidates:,}")
+    c4.metric("Cache", "HIT" if cache_hit else "MISS")
+    
+    items = results.get("results", [])
+    if not items:
+        st.info("No results")
+        return
+    
+    st.markdown(f"**{len(items)} results**")
+    
+    # Results table
+    rows = []
+    for i, r in enumerate(items, 1):
+        row = {
+            "#": i,
+            "ID": r["node_id"][:20],
+            "Text": r.get("text", "")[:60] + "...",
+        }
+        
+        if show_breakdown:
+            row["V"] = f"{r.get('vector_score', 0):.3f}"
+            row["G"] = f"{r.get('graph_score', 0):.3f}"
+            row["CRS"] = f"{r.get('combined_score', 0):.3f}"
+        else:
+            row["Score"] = f"{r.get(score_key, 0):.3f}"
+        
+        if show_path and r.get("depth") is not None:
+            row["Depth"] = r.get("depth", 0)
+        
+        rows.append(row)
+    
+    df = pd.DataFrame(rows)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+    
+    # Score distribution
+    if show_breakdown and len(items) > 1:
+        st.markdown("**Score Distribution**")
+        score_data = []
+        for r in items:
+            score_data.append({"Type": "Vector", "Score": r.get("vector_score", 0)})
+            score_data.append({"Type": "Graph", "Score": r.get("graph_score", 0)})
+            score_data.append({"Type": "CRS", "Score": r.get("combined_score", 0)})
+        
+        fig = px.box(pd.DataFrame(score_data), x="Type", y="Score", color="Type",
+                     color_discrete_map={"Vector": "#58a6ff", "Graph": "#3fb950", "CRS": "#a371f7"})
+        fig.update_layout(height=250, showlegend=False, margin=dict(t=10, b=10))
+        st.plotly_chart(fig, use_container_width=True)
+
+
+# ============================================================================
+# SYSTEM PAGE
+# ============================================================================
+
+def render_system_page():
+    """System monitoring and health."""
+    st.markdown("### System Monitor")
+    
+    tabs = st.tabs(["Health", "Performance", "Components"])
+    
+    with tabs[0]:
+        render_health_tab()
+    with tabs[1]:
+        render_performance_tab()
+    with tabs[2]:
+        render_components_tab()
+
+
+def render_health_tab():
+    """Health check details."""
+    health = api_call("/health")
+    ready = api_call("/ready")
+    
+    if not health:
+        st.error("Cannot connect to API")
+        return
+    
+    # Status overview
+    c1, c2, c3 = st.columns(3)
+    
+    status = health.get("status", "unknown")
+    c1.metric("Status", status.upper())
+    c2.metric("Uptime", f"{health.get('uptime_seconds', 0):.0f}s")
+    c3.metric("Timestamp", datetime.now().strftime("%H:%M:%S"))
+    
+    # Components
+    st.markdown("**Components**")
+    components = health.get("components", {})
+    comp_data = []
+    for name, info in components.items():
+        comp_data.append({
+            "Component": name,
+            "Status": info.get("status", "unknown").upper(),
+            "Details": str(info.get("details", "-"))[:50]
+        })
+    
+    if comp_data:
+        st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
+    
+    # Readiness
+    if ready:
+        st.markdown("**Readiness**")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Model", "✓" if ready.get("model_loaded") else "✗")
+        c2.metric("Nodes", f"{ready.get('nodes_loaded', 0):,}")
+        c3.metric("Edges", f"{ready.get('edges_loaded', 0):,}")
+
+
+def render_performance_tab():
+    """Performance metrics."""
+    stats = api_call("/search/stats")
+    cache = get_cache_stats()
+    
+    if not stats:
+        st.warning("No stats available")
+        return
+    
+    # Database metrics
+    st.markdown("**Database**")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Nodes", f"{stats.get('total_nodes', 0):,}")
+    c2.metric("Edges", f"{stats.get('total_edges', 0):,}")
+    c3.metric("Avg Degree", f"{stats.get('avg_edges_per_node', 0):.2f}")
+    c4.metric("Vector Index", f"{stats.get('vector_index_size', 0):,}")
+    
+    # Cache metrics
+    if cache:
+        st.markdown("**Cache**")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Hits", f"{cache.get('hits', 0):,}")
+        c2.metric("Misses", f"{cache.get('misses', 0):,}")
+        c3.metric("Hit Rate", f"{cache.get('hit_rate', 0)*100:.1f}%")
+        c4.metric("Size", f"{cache.get('size', 0)}/{cache.get('maxsize', 0)}")
+        
+        # Clear cache button
+        if st.button("Clear Cache"):
+            result = api_call("/cache/clear", method="POST")
+            if result and result.get("status") == "success":
+                st.success("Cache cleared")
+                st.rerun()
+    
+    # Edge type distribution
+    edge_types = stats.get("edge_types", {})
+    if edge_types:
+        st.markdown("**Edge Types**")
+        fig = px.pie(
+            pd.DataFrame([{"Type": k, "Count": v} for k, v in edge_types.items()]),
+            values="Count", names="Type", hole=0.4,
+            color_discrete_sequence=["#58a6ff", "#3fb950", "#a371f7", "#d29922"]
+        )
+        fig.update_layout(height=250, margin=dict(t=10, b=10))
+        st.plotly_chart(fig, use_container_width=True)
+
+
+def render_components_tab():
+    """System components info."""
+    st.markdown("**Architecture**")
+    
+    st.code("""
+┌─────────────────────────────────────────────────────┐
+│                    FastAPI + Uvicorn                │
+│              (Rate Limiting, Caching)               │
+├─────────────────────────────────────────────────────┤
+│                   Hybrid Ranker                     │
+│          CRS(q) = αV(q) + βG(q)                     │
+├────────────────────┬────────────────────────────────┤
+│   Vector Engine    │         Graph Engine           │
+│   FAISS + L2       │      NetworkX + BFS            │
+├────────────────────┴────────────────────────────────┤
+│              Embedding Engine                       │
+│         all-MiniLM-L6-v2 (384-dim)                  │
+├─────────────────────────────────────────────────────┤
+│                    SQLite (WAL)                     │
+│              nodes, edges, metadata                 │
+└─────────────────────────────────────────────────────┘
+    """, language=None)
+    
+    # Version info
+    st.markdown("**Stack**")
+    versions = [
+        {"Component": "FAISS", "Purpose": "Vector similarity search (L2/IP)"},
+        {"Component": "NetworkX", "Purpose": "Graph operations & traversal"},
+        {"Component": "SQLite", "Purpose": "Persistent storage (WAL mode)"},
+        {"Component": "sentence-transformers", "Purpose": "Embedding generation"},
+        {"Component": "FastAPI", "Purpose": "REST API framework"},
+    ]
+    st.dataframe(pd.DataFrame(versions), use_container_width=True, hide_index=True)
+
+
+# ============================================================================
+# EXPLORER PAGE
+# ============================================================================
+
+def render_explorer_page():
+    """Data exploration."""
+    st.markdown("### Data Explorer")
+    
+    tabs = st.tabs(["Nodes", "Edges", "Bulk Import"])
+    
+    with tabs[0]:
+        render_nodes_explorer()
+    with tabs[1]:
+        render_edges_explorer()
+    with tabs[2]:
+        render_bulk_import()
+
+
+def render_nodes_explorer():
+    """Node browser."""
+    c1, c2 = st.columns([3, 1])
+    with c1:
+        node_id = st.text_input("Node ID", placeholder="Lookup specific node...")
+    with c2:
+        limit = st.number_input("Limit", 10, 100, 25)
+    
+    if node_id:
+        node = api_call(f"/nodes/{node_id}")
+        if node:
+            st.json(node)
+        else:
+            st.error("Not found")
+    else:
+        nodes = api_call("/nodes", data={"limit": limit})
+        if nodes:
+            df = pd.DataFrame([
+                {
+                    "ID": n["id"][:24],
+                    "Title": n.get("metadata", {}).get("title", "-")[:40],
+                    "Category": n.get("metadata", {}).get("category", "-"),
+                }
+                for n in nodes
+            ])
+            st.dataframe(df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No nodes")
+
+
+def render_edges_explorer():
+    """Edge browser."""
+    node_id = st.text_input("Node ID for edges", placeholder="Enter node ID...")
+    
+    if node_id:
+        edges = api_call(f"/edges/node/{node_id}")
+        if edges:
+            df = pd.DataFrame([
+                {
+                    "Type": e.get("type", "-"),
+                    "Source": e.get("source_id", "-")[:20],
+                    "Target": e.get("target_id", "-")[:20],
+                    "Weight": f"{e.get('weight', 1.0):.2f}",
+                }
+                for e in edges
+            ])
+            st.dataframe(df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No edges for this node")
+
+
+def render_bulk_import():
+    """Bulk data import."""
+    st.caption("Bulk import nodes and edges")
+    
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        st.markdown("**Import Nodes**")
+        nodes_json = st.text_area("Nodes JSON", height=150, placeholder='[{"text": "...", "metadata": {}}]')
+        
+        if st.button("Import Nodes", key="bulk_n"):
+            try:
+                import json
+                nodes = json.loads(nodes_json)
+                result = api_call("/bulk/nodes", method="POST", data={
+                    "nodes": nodes,
+                    "generate_embeddings": True
+                })
+                if result:
+                    st.success(f"Created: {result.get('created', 0)}, Failed: {result.get('failed', 0)}")
+            except Exception as e:
+                st.error(f"Error: {e}")
+    
+    with c2:
+        st.markdown("**Import Edges**")
+        edges_json = st.text_area("Edges JSON", height=150, placeholder='[{"source_id": "...", "target_id": "...", "type": "..."}]')
+        
+        if st.button("Import Edges", key="bulk_e"):
+            try:
+                import json
+                edges = json.loads(edges_json)
+                result = api_call("/bulk/edges", method="POST", data={
+                    "edges": edges,
+                    "skip_validation": False
+                })
+                if result:
+                    st.success(f"Created: {result.get('created', 0)}, Failed: {result.get('failed', 0)}")
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+
+# ============================================================================
+# MAIN
+# ============================================================================
+
+def main():
+    page = render_sidebar()
+    
+    if page == "Search":
+        render_search_page()
+    elif page == "System":
+        render_system_page()
+    elif page == "Explorer":
+        render_explorer_page()
+
+
+if __name__ == "__main__":
+    main()
