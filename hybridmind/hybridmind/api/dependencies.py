@@ -1,0 +1,182 @@
+"""
+FastAPI dependencies for HybridMind.
+Provides singleton instances of storage and engine components.
+"""
+
+import logging
+from functools import lru_cache
+from typing import Generator
+
+from hybridmind.config import settings
+from hybridmind.storage.sqlite_store import SQLiteStore
+from hybridmind.storage.vector_index import VectorIndex
+from hybridmind.storage.graph_index import GraphIndex
+from hybridmind.engine.embedding import EmbeddingEngine
+from hybridmind.engine.vector_search import VectorSearchEngine
+from hybridmind.engine.graph_search import GraphSearchEngine
+from hybridmind.engine.hybrid_ranker import HybridRanker
+
+logger = logging.getLogger(__name__)
+
+
+class DatabaseManager:
+    """
+    Singleton manager for all database components.
+    Ensures components are initialized once and reused.
+    """
+    
+    _instance = None
+    _initialized = False
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        if self._initialized:
+            return
+        
+        logger.info("Initializing HybridMind database components...")
+        
+        # Ensure data directory exists
+        settings.get_data_dir()
+        
+        # Initialize storage components
+        self.sqlite_store = SQLiteStore(settings.database_path)
+        self.vector_index = VectorIndex(
+            dimension=settings.embedding_dimension,
+            index_path=settings.vector_index_path
+        )
+        self.graph_index = GraphIndex(index_path=settings.graph_index_path)
+        
+        # Initialize embedding engine
+        self.embedding_engine = EmbeddingEngine(
+            model_name=settings.embedding_model
+        )
+        
+        # Initialize search engines
+        self.vector_engine = VectorSearchEngine(
+            vector_index=self.vector_index,
+            sqlite_store=self.sqlite_store,
+            embedding_engine=self.embedding_engine
+        )
+        
+        self.graph_engine = GraphSearchEngine(
+            graph_index=self.graph_index,
+            sqlite_store=self.sqlite_store
+        )
+        
+        # Initialize hybrid ranker
+        self.hybrid_ranker = HybridRanker(
+            vector_engine=self.vector_engine,
+            graph_engine=self.graph_engine
+        )
+        
+        # Rebuild indexes from SQLite on startup
+        self._rebuild_indexes()
+        
+        self._initialized = True
+        logger.info("HybridMind database components initialized successfully")
+    
+    def _rebuild_indexes(self):
+        """Rebuild vector and graph indexes from SQLite."""
+        try:
+            # Rebuild vector index
+            embeddings = self.sqlite_store.get_all_node_embeddings()
+            if embeddings:
+                self.vector_index.rebuild_from_embeddings(embeddings)
+                logger.info(f"Vector index rebuilt with {len(embeddings)} nodes")
+            
+            # Rebuild graph index
+            edges = self.sqlite_store.get_all_edges()
+            if edges:
+                self.graph_index.rebuild_from_edges(edges)
+                logger.info(f"Graph index rebuilt with {len(edges)} edges")
+            
+            # Add orphan nodes to graph
+            nodes = self.sqlite_store.list_nodes(limit=10000)
+            for node in nodes:
+                if not self.graph_index.has_node(node["id"]):
+                    self.graph_index.add_node(node["id"])
+                    
+        except Exception as e:
+            logger.error(f"Error rebuilding indexes: {e}")
+    
+    def get_stats(self) -> dict:
+        """Get database statistics."""
+        return {
+            "total_nodes": self.sqlite_store.count_nodes(),
+            "total_edges": self.sqlite_store.count_edges(),
+            "edge_types": self.sqlite_store.get_edge_type_counts(),
+            "vector_index_size": self.vector_index.size,
+            "graph_node_count": self.graph_index.node_count,
+            "graph_edge_count": self.graph_index.edge_count,
+            "database_size_bytes": self.sqlite_store.get_database_size(),
+            "embedding_model": settings.embedding_model,
+            "embedding_dimension": settings.embedding_dimension
+        }
+    
+    def save_indexes(self):
+        """Save indexes to disk."""
+        try:
+            self.vector_index.save()
+            self.graph_index.save()
+            logger.info("Indexes saved to disk")
+        except Exception as e:
+            logger.error(f"Error saving indexes: {e}")
+    
+    def close(self):
+        """Close all connections."""
+        self.save_indexes()
+        self.sqlite_store.close()
+        logger.info("Database connections closed")
+
+
+# Singleton instance
+_db_manager: DatabaseManager = None
+
+
+def get_db_manager() -> DatabaseManager:
+    """Get the database manager singleton."""
+    global _db_manager
+    if _db_manager is None:
+        _db_manager = DatabaseManager()
+    return _db_manager
+
+
+# Dependency injection functions for FastAPI
+def get_sqlite_store() -> SQLiteStore:
+    """FastAPI dependency for SQLite store."""
+    return get_db_manager().sqlite_store
+
+
+def get_vector_index() -> VectorIndex:
+    """FastAPI dependency for vector index."""
+    return get_db_manager().vector_index
+
+
+def get_graph_index() -> GraphIndex:
+    """FastAPI dependency for graph index."""
+    return get_db_manager().graph_index
+
+
+def get_embedding_engine() -> EmbeddingEngine:
+    """FastAPI dependency for embedding engine."""
+    return get_db_manager().embedding_engine
+
+
+def get_vector_engine() -> VectorSearchEngine:
+    """FastAPI dependency for vector search engine."""
+    return get_db_manager().vector_engine
+
+
+def get_graph_engine() -> GraphSearchEngine:
+    """FastAPI dependency for graph search engine."""
+    return get_db_manager().graph_engine
+
+
+def get_hybrid_ranker() -> HybridRanker:
+    """FastAPI dependency for hybrid ranker."""
+    return get_db_manager().hybrid_ranker
+

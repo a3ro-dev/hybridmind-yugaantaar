@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "description": "Sample research papers for HybridMind demo",
+  "papers": [
+    {
+      "id": "paper-transformer",
+      "title": "Attention Is All You Need",
+      "abstract": "We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely.",
+      "year": 2017,
+      "venue": "NeurIPS",
+      "tags": ["transformer", "attention", "NLP"]
+    },
+    {
+      "id": "paper-bert",
+      "title": "BERT: Pre-training of Deep Bidirectional Transformers",
+      "abstract": "We introduce BERT, a new language representation model designed to pre-train deep bidirectional representations from unlabeled text.",
+      "year": 2018,
+      "venue": "NAACL",
+      "tags": ["BERT", "transformer", "NLP", "pre-training"]
+    }
+  ],
+  "relationships": [
+    {"source": "paper-bert", "target": "paper-transformer", "type": "cites"}
+  ]
+}
+
