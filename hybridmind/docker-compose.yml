@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  hybridmind:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - HYBRIDMIND_DEBUG=false
+      - HYBRIDMIND_DATABASE_PATH=data/hybridmind.db
+      - HYBRIDMIND_VECTOR_INDEX_PATH=data/vector.index
+      - HYBRIDMIND_GRAPH_INDEX_PATH=data/graph.pkl
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  ui:
+    build: .
+    command: streamlit run ui/app.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    depends_on:
+      - hybridmind
+    environment:
+      - API_BASE_URL=http://hybridmind:8000
+    restart: unless-stopped
+

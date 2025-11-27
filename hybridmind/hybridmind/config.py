@@ -5,12 +5,20 @@ Configuration management for HybridMind.
 import os
 from pathlib import Path
 from typing import Optional
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
+    
+    model_config = SettingsConfigDict(
+        env_prefix="HYBRIDMIND_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
     
     # Application
     app_name: str = "HybridMind"
@@ -41,11 +49,6 @@ class Settings(BaseSettings):
     # API
     host: str = "0.0.0.0"
     port: int = 8000
-    
-    class Config:
-        env_prefix = "HYBRIDMIND_"
-        env_file = ".env"
-        env_file_encoding = "utf-8"
     
     def get_data_dir(self) -> Path:
         """Get the data directory, creating it if necessary."""
