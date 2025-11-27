@@ -246,6 +246,77 @@ class TestCRSAlgorithm:
             assert 0 <= r["combined_score"] <= 1
 
 
+class TestLearnedRanker:
+    """Tests for the learned CRS ranker."""
+    
+    def test_learned_ranker_basic(self):
+        """Test basic learned ranker functionality."""
+        from hybridmind.engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
+        
+        ranker = LearnedCRSRanker()
+        candidate = ScoredCandidate(
+            node_id="test",
+            text="Test",
+            metadata={},
+            vector_score=0.8,
+            graph_score=0.6
+        )
+        
+        score, explanation = ranker.compute_score(candidate)
+        assert 0 <= score <= 1
+        assert "final_crs" in explanation
+    
+    def test_edge_type_weighting(self):
+        """Test edge type weighting in learned ranker."""
+        from hybridmind.engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
+        
+        ranker = LearnedCRSRanker()
+        
+        # High-value edge type
+        candidate_cite = ScoredCandidate(
+            node_id="a", text="", metadata={},
+            vector_score=0.5, graph_score=0.5,
+            edge_types=["cites"]
+        )
+        
+        # Low-value edge type
+        candidate_related = ScoredCandidate(
+            node_id="b", text="", metadata={},
+            vector_score=0.5, graph_score=0.5,
+            edge_types=["related_to"]
+        )
+        
+        score1, _ = ranker.compute_score(candidate_cite)
+        score2, _ = ranker.compute_score(candidate_related)
+        
+        assert score1 >= score2
+    
+    def test_hop_decay(self):
+        """Test hop distance decay in learned ranker."""
+        from hybridmind.engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
+        
+        ranker = LearnedCRSRanker()
+        
+        # 1 hop
+        candidate1 = ScoredCandidate(
+            node_id="a", text="", metadata={},
+            vector_score=0.5, graph_score=0.8,
+            hop_distance=1
+        )
+        
+        # 3 hops
+        candidate3 = ScoredCandidate(
+            node_id="b", text="", metadata={},
+            vector_score=0.5, graph_score=0.8,
+            hop_distance=3
+        )
+        
+        score1, _ = ranker.compute_score(candidate1)
+        score3, _ = ranker.compute_score(candidate3)
+        
+        assert score1 > score3  # Closer should score higher
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 

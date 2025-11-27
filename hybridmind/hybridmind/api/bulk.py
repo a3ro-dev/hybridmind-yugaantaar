@@ -40,7 +40,7 @@ class BulkNodeCreate(BaseModel):
 
 class BulkNodesRequest(BaseModel):
     """Bulk node creation request."""
-    nodes: List[BulkNodeCreate] = Field(..., min_items=1, max_items=1000)
+    nodes: List[BulkNodeCreate] = Field(..., min_length=1, max_length=1000)
     generate_embeddings: bool = Field(
         default=True,
         description="Generate embeddings for nodes"
@@ -59,7 +59,7 @@ class BulkEdgeCreate(BaseModel):
 
 class BulkEdgesRequest(BaseModel):
     """Bulk edge creation request."""
-    edges: List[BulkEdgeCreate] = Field(..., min_items=1, max_items=5000)
+    edges: List[BulkEdgeCreate] = Field(..., min_length=1, max_length=5000)
     skip_validation: bool = Field(
         default=False,
         description="Skip node existence validation for faster import"

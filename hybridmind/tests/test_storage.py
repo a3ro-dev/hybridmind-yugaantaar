@@ -120,16 +120,62 @@ class TestVectorIndex:
         assert all(isinstance(r[1], float) for r in results)
     
     def test_remove(self, index):
-        """Test vector removal."""
-        vec = np.random.randn(384).astype(np.float32)
-        index.add("test-node", vec)
+        """Test vector removal (soft delete with automatic compaction)."""
+        # Add multiple nodes so deletion doesn't trigger immediate compaction
+        for i in range(5):
+            vec = np.random.randn(384).astype(np.float32)
+            index.add(f"node-{i}", vec)
         
-        assert index.size == 1
-        assert index.remove("test-node")
-        assert index.size == 0
+        assert index.size == 5
+        assert index.remove("node-0")
+        assert index.size == 4
+        # Node should be in deleted_ids (soft deleted)
+        assert "node-0" in index.deleted_ids
+    
+    def test_soft_delete_excludes_from_search(self, index):
+        """Test that soft deleted nodes are excluded from search."""
+        base_vec = np.random.randn(384).astype(np.float32)
+        base_vec = base_vec / np.linalg.norm(base_vec)
+        
+        for i in range(5):
+            noise = np.random.randn(384).astype(np.float32) * 0.1
+            vec = base_vec + noise
+            vec = vec / np.linalg.norm(vec)
+            index.add(f"node-{i}", vec)
+        
+        # Soft delete
+        index.remove("node-2")
+        
+        # Search should not return deleted node
+        results = index.search(base_vec, top_k=10)
+        result_ids = [r[0] for r in results]
+        assert "node-2" not in result_ids
+    
+    def test_batch_add(self, index):
+        """Test batch adding vectors."""
+        nodes = []
+        for i in range(10):
+            vec = np.random.randn(384).astype(np.float32)
+            nodes.append((f"batch-{i}", vec))
+        
+        index.add_batch(nodes)
+        assert index.size == 10
+    
+    def test_get_stats(self, index):
+        """Test get_stats method."""
+        for i in range(5):
+            vec = np.random.randn(384).astype(np.float32)
+            index.add(f"node-{i}", vec)
+        
+        index.remove("node-0")
+        
+        stats = index.get_stats()
+        assert stats["total_vectors"] == 5
+        assert stats["active_vectors"] == 4
+        assert stats["deleted_vectors"] == 1
     
     def test_remove_with_multiple_vectors(self, index):
-        """Test removing one vector when multiple exist (exercises reconstruct)."""
+        """Test removing one vector when multiple exist (soft delete)."""
         # Add multiple vectors with similar direction for better search results
         base_vec = np.random.randn(384).astype(np.float32)
         base_vec = base_vec / np.linalg.norm(base_vec)
@@ -143,24 +189,24 @@ class TestVectorIndex:
         
         assert index.size == 5
         
-        # Remove middle node
+        # Remove middle node (soft delete)
         assert index.remove("node-2")
         assert index.size == 4
         
-        # Verify internal state is correct
-        assert "node-2" not in index.reverse_map
+        # Verify node is soft-deleted (in deleted_ids, not completely removed)
+        assert "node-2" in index.deleted_ids
         
         # Search with a similar vector (should find remaining nodes)
         results = index.search(base_vec, top_k=10)
         result_ids = [r[0] for r in results]
         
-        # Must return at least one result to verify reconstruction worked
+        # Must return at least one result to verify search works
         assert len(results) > 0, "Search should return results after node removal"
         
-        # Removed node should not be in results
+        # Soft-deleted node should not be in results
         assert "node-2" not in result_ids
         
-        # All results should be from remaining nodes
+        # All results should be from active nodes
         for rid in result_ids:
             assert rid in ["node-0", "node-1", "node-3", "node-4"]
     

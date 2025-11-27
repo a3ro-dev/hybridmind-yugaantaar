@@ -641,12 +641,148 @@ class TestUtilityEdgeCases:
         assert response.status_code in [200, 501]  # May not be implemented
     
     def test_health_check(self, client):
-        """Test health check endpoint."""
+        """Test comprehensive health check endpoint."""
         response = client.get("/health")
         assert response.status_code in [200, 503]
         if response.status_code == 200:
             data = response.json()
             assert "status" in data
+            assert "components" in data
+            assert "metrics" in data
+    
+    def test_ready_endpoint(self, client):
+        """Test readiness probe endpoint."""
+        response = client.get("/ready")
+        assert response.status_code == 200
+        data = response.json()
+        assert "status" in data
+    
+    def test_live_endpoint(self, client):
+        """Test liveness probe endpoint."""
+        response = client.get("/live")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "alive"
+    
+    def test_cache_stats(self, client):
+        """Test cache stats endpoint."""
+        response = client.get("/cache/stats")
+        assert response.status_code == 200
+        data = response.json()
+        assert "hits" in data
+        assert "misses" in data
+        assert "hit_rate" in data
+    
+    def test_cache_clear(self, client):
+        """Test cache clear endpoint."""
+        response = client.post("/cache/clear")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+
+
+# ============================================================================
+# BULK OPERATIONS EDGE CASES
+# ============================================================================
+
+class TestBulkOperationsEdgeCases:
+    """Tests for bulk operations edge cases."""
+    
+    def test_bulk_nodes_empty_list(self, client):
+        """Test bulk create with empty list."""
+        response = client.post("/bulk/nodes", json={
+            "nodes": [],
+            "generate_embeddings": True
+        })
+        assert response.status_code == 422  # Validation error - min 1 required
+    
+    def test_bulk_nodes_duplicate_ids(self, client):
+        """Test bulk create with duplicate custom IDs."""
+        response = client.post("/bulk/nodes", json={
+            "nodes": [
+                {"id": "dup-test-1", "text": "First", "metadata": {}},
+                {"id": "dup-test-1", "text": "Duplicate", "metadata": {}},
+            ],
+            "generate_embeddings": True
+        })
+        # First should succeed, second should fail
+        assert response.status_code == 200
+        data = response.json()
+        # One should fail as duplicate
+        assert data["created"] + data["failed"] == 2
+    
+    def test_bulk_edges_empty_list(self, client):
+        """Test bulk edges with empty list."""
+        response = client.post("/bulk/edges", json={
+            "edges": [],
+            "skip_validation": False
+        })
+        assert response.status_code == 422  # Validation error
+    
+    def test_bulk_edges_skip_validation(self, client):
+        """Test bulk edges with skip_validation flag."""
+        response = client.post("/bulk/edges", json={
+            "edges": [
+                {"source_id": "fake-1", "target_id": "fake-2", "type": "test"},
+            ],
+            "skip_validation": True
+        })
+        # With skip_validation, it should try to create (may fail later)
+        assert response.status_code == 200
+    
+    def test_bulk_import_empty(self, client):
+        """Test bulk import with empty lists."""
+        response = client.post("/bulk/import", json={
+            "nodes": [],
+            "edges": [],
+            "generate_embeddings": True
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["nodes"]["created"] == 0
+        assert data["edges"]["created"] == 0
+
+
+# ============================================================================
+# CACHING EDGE CASES
+# ============================================================================
+
+class TestCachingEdgeCases:
+    """Tests for caching edge cases."""
+    
+    def test_cache_with_different_params(self, client):
+        """Test that different params produce different cache entries."""
+        # First search
+        client.post("/search/hybrid", json={
+            "query_text": "test",
+            "top_k": 5
+        })
+        
+        # Different params
+        client.post("/search/hybrid", json={
+            "query_text": "test",
+            "top_k": 10  # Different top_k
+        })
+        
+        # Check that both are cached separately
+        stats = client.get("/cache/stats").json()
+        assert stats["misses"] >= 2
+    
+    def test_cache_invalidation_on_mutation(self, client):
+        """Test cache invalidation after data mutation."""
+        # Populate cache
+        client.post("/search/hybrid", json={"query_text": "test", "top_k": 5})
+        
+        # Get initial cache state
+        stats1 = client.get("/cache/stats").json()
+        initial_size = stats1["size"]
+        
+        # Create node (should invalidate)
+        client.post("/nodes", json={"text": "Invalidation test", "metadata": {}})
+        
+        # Cache should be cleared
+        stats2 = client.get("/cache/stats").json()
+        assert stats2["size"] == 0 or stats2["size"] < initial_size
 
 
 # ============================================================================

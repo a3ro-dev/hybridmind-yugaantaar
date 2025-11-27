@@ -31,11 +31,42 @@ class TestRootEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "HybridMind"
+        assert "endpoints" in data
+        # Check for new production endpoints
+        assert "bulk" in data["endpoints"]
+        assert "health" in data["endpoints"]
     
     def test_health(self, client):
-        """Test health endpoint."""
+        """Test comprehensive health endpoint."""
         response = client.get("/health")
         assert response.status_code in [200, 503]
+        if response.status_code == 200:
+            data = response.json()
+            assert "status" in data
+            assert "components" in data
+            assert "metrics" in data
+    
+    def test_ready(self, client):
+        """Test readiness endpoint."""
+        response = client.get("/ready")
+        assert response.status_code == 200
+        data = response.json()
+        assert "status" in data
+    
+    def test_live(self, client):
+        """Test liveness endpoint."""
+        response = client.get("/live")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "alive"
+    
+    def test_cache_stats(self, client):
+        """Test cache stats endpoint."""
+        response = client.get("/cache/stats")
+        assert response.status_code == 200
+        data = response.json()
+        assert "hits" in data
+        assert "misses" in data
 
 
 class TestNodeEndpoints:
@@ -188,6 +219,55 @@ class TestEdgeEndpoints:
         # Delete edge
         response = client.delete(f"/edges/{edge_id}")
         assert response.status_code == 200
+
+
+class TestBulkEndpoints:
+    """Tests for bulk operations endpoints."""
+    
+    def test_bulk_nodes(self, client):
+        """Test bulk node creation."""
+        response = client.post("/bulk/nodes", json={
+            "nodes": [
+                {"text": "Bulk test 1", "metadata": {}},
+                {"text": "Bulk test 2", "metadata": {}},
+            ],
+            "generate_embeddings": True
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["created"] >= 0
+        assert "elapsed_ms" in data
+    
+    def test_bulk_edges(self, client):
+        """Test bulk edge creation."""
+        # Create nodes first
+        node1 = client.post("/nodes", json={"text": "Edge bulk 1", "metadata": {}}).json()
+        node2 = client.post("/nodes", json={"text": "Edge bulk 2", "metadata": {}}).json()
+        
+        response = client.post("/bulk/edges", json={
+            "edges": [
+                {"source_id": node1["id"], "target_id": node2["id"], "type": "test"},
+            ],
+            "skip_validation": False
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert "created" in data
+    
+    def test_bulk_import(self, client):
+        """Test combined bulk import."""
+        response = client.post("/bulk/import", json={
+            "nodes": [
+                {"id": "bulk-import-1", "text": "Import 1", "metadata": {}},
+                {"id": "bulk-import-2", "text": "Import 2", "metadata": {}},
+            ],
+            "edges": [],
+            "generate_embeddings": True
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert "nodes" in data
+        assert "edges" in data
 
 
 class TestSearchEndpoints:
