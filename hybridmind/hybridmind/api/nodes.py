@@ -24,6 +24,7 @@ from hybridmind.storage.sqlite_store import SQLiteStore
 from hybridmind.storage.vector_index import VectorIndex
 from hybridmind.storage.graph_index import GraphIndex
 from hybridmind.engine.embedding import EmbeddingEngine
+from hybridmind.engine.cache import invalidate_cache
 
 router = APIRouter(prefix="/nodes", tags=["Nodes"])
 
@@ -65,6 +66,9 @@ async def create_node(
     
     # Add to graph index (as isolated node initially)
     graph_index.add_node(node_id)
+    
+    # Invalidate search cache
+    invalidate_cache()
     
     return NodeResponse(
         id=result["id"],
@@ -155,6 +159,9 @@ async def update_node(
     if new_embedding is not None:
         vector_index.add(node_id, new_embedding)  # add() handles replacement
     
+    # Invalidate search cache
+    invalidate_cache()
+    
     # Get edges for response
     edges_data = sqlite_store.get_node_edges(node_id)
     edges = []
@@ -207,6 +214,9 @@ async def delete_node(
     
     # Remove from graph index
     graph_index.remove_node(node_id)
+    
+    # Invalidate search cache
+    invalidate_cache()
     
     return NodeDeleteResponse(
         deleted=deleted,

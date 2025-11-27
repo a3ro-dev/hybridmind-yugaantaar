@@ -1,6 +1,12 @@
 """
 Search API endpoints for HybridMind.
 Vector, Graph, and Hybrid search operations.
+
+Features:
+- Vector similarity search (semantic)
+- Graph traversal search (relational)
+- Hybrid search with CRS algorithm
+- Query result caching for performance
 """
 
 from typing import List, Optional
@@ -24,6 +30,7 @@ from hybridmind.api.dependencies import (
 from hybridmind.engine.vector_search import VectorSearchEngine
 from hybridmind.engine.graph_search import GraphSearchEngine
 from hybridmind.engine.hybrid_ranker import HybridRanker
+from hybridmind.engine.cache import get_query_cache
 from hybridmind.storage.sqlite_store import SQLiteStore
 
 router = APIRouter(prefix="/search", tags=["Search"])
@@ -39,7 +46,23 @@ async def vector_search(
     
     Returns nodes ranked by semantic similarity to the query text.
     Uses the configured embedding model (all-MiniLM-L6-v2 by default).
+    
+    Results are cached for 5 minutes for faster repeated queries.
     """
+    # Check cache first
+    cache = get_query_cache()
+    cache_params = {
+        "query_text": request.query_text,
+        "top_k": request.top_k,
+        "min_score": request.min_score,
+        "filter_metadata": request.filter_metadata
+    }
+    
+    cached = cache.get("vector", cache_params)
+    if cached:
+        return SearchResponse(**cached)
+    
+    # Execute search
     results, query_time_ms, total_candidates = vector_engine.search(
         query_text=request.query_text,
         top_k=request.top_k,
@@ -58,12 +81,17 @@ async def vector_search(
         for r in results
     ]
     
-    return SearchResponse(
+    response = SearchResponse(
         results=search_results,
         query_time_ms=query_time_ms,
         total_candidates=total_candidates,
         search_type="vector"
     )
+    
+    # Cache the result
+    cache.set("vector", cache_params, response.model_dump())
+    
+    return response
 
 
 @router.get("/graph", response_model=SearchResponse)
@@ -131,7 +159,28 @@ async def hybrid_search(
     
     If anchor_nodes are provided, graph scores are computed relative
     to those nodes. Otherwise, the top vector results are used as anchors.
+    
+    Results are cached for 5 minutes for faster repeated queries.
     """
+    # Check cache first
+    cache = get_query_cache()
+    cache_params = {
+        "query_text": request.query_text,
+        "top_k": request.top_k,
+        "vector_weight": request.vector_weight,
+        "graph_weight": request.graph_weight,
+        "anchor_nodes": request.anchor_nodes,
+        "max_depth": request.max_depth,
+        "min_score": request.min_score
+    }
+    
+    cached = cache.get("hybrid", cache_params)
+    if cached:
+        # Return cached result with cache indicator
+        cached_response = SearchResponse(**cached)
+        return cached_response
+    
+    # Execute search
     results, query_time_ms, total_candidates = hybrid_ranker.search(
         query_text=request.query_text,
         top_k=request.top_k,
@@ -156,12 +205,17 @@ async def hybrid_search(
         for r in results
     ]
     
-    return SearchResponse(
+    response = SearchResponse(
         results=search_results,
         query_time_ms=query_time_ms,
         total_candidates=total_candidates,
         search_type="hybrid"
     )
+    
+    # Cache the result
+    cache.set("hybrid", cache_params, response.model_dump())
+    
+    return response
 
 
 @router.post("/compare", response_model=dict)

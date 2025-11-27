@@ -18,6 +18,7 @@ from hybridmind.api.dependencies import (
 )
 from hybridmind.storage.sqlite_store import SQLiteStore
 from hybridmind.storage.graph_index import GraphIndex
+from hybridmind.engine.cache import invalidate_cache
 
 router = APIRouter(prefix="/edges", tags=["Edges"])
 
@@ -68,6 +69,9 @@ async def create_edge(
         weight=edge.weight,
         edge_id=edge_id
     )
+    
+    # Invalidate search cache
+    invalidate_cache()
     
     return EdgeResponse(
         id=result["id"],
@@ -136,6 +140,9 @@ async def update_edge(
         edge_id=result["id"]
     )
     
+    # Invalidate search cache
+    invalidate_cache()
+    
     return EdgeResponse(
         id=result["id"],
         source_id=result["source_id"],
@@ -166,6 +173,9 @@ async def delete_edge(
     
     # Remove from graph index
     graph_index.remove_edge(existing["source_id"], existing["target_id"])
+    
+    # Invalidate search cache
+    invalidate_cache()
     
     return EdgeDeleteResponse(
         deleted=deleted,
