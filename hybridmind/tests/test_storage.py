@@ -154,6 +154,9 @@ class TestVectorIndex:
         results = index.search(base_vec, top_k=10)
         result_ids = [r[0] for r in results]
         
+        # Must return at least one result to verify reconstruction worked
+        assert len(results) > 0, "Search should return results after node removal"
+        
         # Removed node should not be in results
         assert "node-2" not in result_ids
         
