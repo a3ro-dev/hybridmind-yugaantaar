@@ -1,38 +1,38 @@
 # HybridMind - Vector + Graph Native Database
 # Core Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.24.0
 pydantic>=2.7.0
 pydantic-settings>=2.0.0
+starlette>=0.41.0
 
 # Vector Search
-faiss-cpu==1.7.4
+faiss-cpu>=1.7.4
 numpy>=1.24.0
 
 # Embeddings
-sentence-transformers==2.2.2
+sentence-transformers>=2.2.2
 torch>=2.0.0
 
 # Graph
-networkx==3.2.1
+networkx>=3.2.1
 
 # Storage
-aiosqlite==0.19.0
+aiosqlite>=0.19.0
 
 # CLI
-typer==0.9.0
-rich==13.7.0
+typer>=0.9.0
+rich>=13.7.0
 
 # UI
-streamlit==1.28.0
+streamlit>=1.28.0
+plotly>=5.18.0
 
 # Utilities
-python-multipart==0.0.6
-orjson==3.9.10
+python-multipart>=0.0.6
+orjson>=3.9.10
 
 # Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.1
-
-plotly
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+httpx>=0.25.1

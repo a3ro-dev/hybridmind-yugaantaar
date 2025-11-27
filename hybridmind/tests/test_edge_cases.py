@@ -26,8 +26,8 @@ from hybridmind.engine.embedding import EmbeddingEngine
 @pytest.fixture
 def client():
     """Create test client."""
-    with TestClient(app) as client:
-        yield client
+    client = TestClient(app)
+    yield client
 
 
 @pytest.fixture

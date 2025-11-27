@@ -18,8 +18,8 @@ from hybridmind.main import app
 @pytest.fixture
 def client():
     """Create test client."""
-    with TestClient(app) as client:
-        yield client
+    client = TestClient(app)
+    yield client
 
 
 class TestRootEndpoints:
