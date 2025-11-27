@@ -13,13 +13,13 @@ import statistics
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.storage.graph_index import GraphIndex
-from hybridmind.engine.embedding import EmbeddingEngine
-from hybridmind.engine.vector_search import VectorSearchEngine
-from hybridmind.engine.graph_search import GraphSearchEngine
-from hybridmind.engine.hybrid_ranker import HybridRanker
+from storage.sqlite_store import SQLiteStore
+from storage.vector_index import VectorIndex
+from storage.graph_index import GraphIndex
+from engine.embedding import EmbeddingEngine
+from engine.vector_search import VectorSearchEngine
+from engine.graph_search import GraphSearchEngine
+from engine.hybrid_ranker import HybridRanker
 
 
 @dataclass

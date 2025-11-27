@@ -7,14 +7,14 @@ import logging
 from functools import lru_cache
 from typing import Generator
 
-from hybridmind.config import settings
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.storage.graph_index import GraphIndex
-from hybridmind.engine.embedding import EmbeddingEngine
-from hybridmind.engine.vector_search import VectorSearchEngine
-from hybridmind.engine.graph_search import GraphSearchEngine
-from hybridmind.engine.hybrid_ranker import HybridRanker
+from config import settings
+from storage.sqlite_store import SQLiteStore
+from storage.vector_index import VectorIndex
+from storage.graph_index import GraphIndex
+from engine.embedding import EmbeddingEngine
+from engine.vector_search import VectorSearchEngine
+from engine.graph_search import GraphSearchEngine
+from engine.hybrid_ranker import HybridRanker
 
 logger = logging.getLogger(__name__)
 

@@ -7,9 +7,9 @@ import tempfile
 import numpy as np
 from pathlib import Path
 
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.storage.graph_index import GraphIndex
+from storage.sqlite_store import SQLiteStore
+from storage.vector_index import VectorIndex
+from storage.graph_index import GraphIndex
 
 
 class TestSQLiteStore:

@@ -12,7 +12,7 @@ Features:
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from hybridmind.models.search import (
+from models.search import (
     VectorSearchRequest,
     GraphSearchRequest,
     HybridSearchRequest,
@@ -20,18 +20,18 @@ from hybridmind.models.search import (
     SearchResponse,
     StatsResponse
 )
-from hybridmind.api.dependencies import (
+from api.dependencies import (
     get_vector_engine,
     get_graph_engine,
     get_hybrid_ranker,
     get_db_manager,
     get_sqlite_store
 )
-from hybridmind.engine.vector_search import VectorSearchEngine
-from hybridmind.engine.graph_search import GraphSearchEngine
-from hybridmind.engine.hybrid_ranker import HybridRanker
-from hybridmind.engine.cache import get_query_cache
-from hybridmind.storage.sqlite_store import SQLiteStore
+from engine.vector_search import VectorSearchEngine
+from engine.graph_search import GraphSearchEngine
+from engine.hybrid_ranker import HybridRanker
+from engine.cache import get_query_cache
+from storage.sqlite_store import SQLiteStore
 
 router = APIRouter(prefix="/search", tags=["Search"])
 

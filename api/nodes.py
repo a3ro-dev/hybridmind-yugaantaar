@@ -7,24 +7,24 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from hybridmind.models.node import (
+from models.node import (
     NodeCreate,
     NodeUpdate,
     NodeResponse,
     NodeDeleteResponse,
     EdgeSummary
 )
-from hybridmind.api.dependencies import (
+from api.dependencies import (
     get_sqlite_store,
     get_vector_index,
     get_graph_index,
     get_embedding_engine
 )
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.storage.graph_index import GraphIndex
-from hybridmind.engine.embedding import EmbeddingEngine
-from hybridmind.engine.cache import invalidate_cache
+from storage.sqlite_store import SQLiteStore
+from storage.vector_index import VectorIndex
+from storage.graph_index import GraphIndex
+from engine.embedding import EmbeddingEngine
+from engine.cache import invalidate_cache
 
 router = APIRouter(prefix="/nodes", tags=["Nodes"])
 

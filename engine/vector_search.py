@@ -7,9 +7,9 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.engine.embedding import EmbeddingEngine
+from storage.vector_index import VectorIndex
+from storage.sqlite_store import SQLiteStore
+from engine.embedding import EmbeddingEngine
 
 
 class VectorSearchEngine:

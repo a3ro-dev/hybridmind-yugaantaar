@@ -6,19 +6,19 @@ import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from hybridmind.models.edge import (
+from models.edge import (
     EdgeCreate,
     EdgeUpdate,
     EdgeResponse,
     EdgeDeleteResponse
 )
-from hybridmind.api.dependencies import (
+from api.dependencies import (
     get_sqlite_store,
     get_graph_index
 )
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.storage.graph_index import GraphIndex
-from hybridmind.engine.cache import invalidate_cache
+from storage.sqlite_store import SQLiteStore
+from storage.graph_index import GraphIndex
+from engine.cache import invalidate_cache
 
 router = APIRouter(prefix="/edges", tags=["Edges"])
 

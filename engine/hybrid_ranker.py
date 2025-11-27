@@ -7,8 +7,8 @@ import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 import numpy as np
 
-from hybridmind.engine.vector_search import VectorSearchEngine
-from hybridmind.engine.graph_search import GraphSearchEngine
+from engine.vector_search import VectorSearchEngine
+from engine.graph_search import GraphSearchEngine
 
 
 class HybridRanker:

@@ -47,7 +47,7 @@ class ComparisonEngine:
     def _get_hybridmind(self):
         """Lazy load HybridMind."""
         if self._hybridmind is None:
-            from hybridmind.api.dependencies import get_db_manager
+            from api.dependencies import get_db_manager
             self._hybridmind = get_db_manager()
             self._embedding_engine = self._hybridmind.embedding_engine
         return self._hybridmind

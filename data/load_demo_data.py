@@ -10,7 +10,7 @@ import random
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from hybridmind.api.dependencies import get_db_manager
+from api.dependencies import get_db_manager
 
 
 def load_arxiv_from_huggingface(num_papers: int = 200):

@@ -21,11 +21,11 @@ os.environ["HYBRIDMIND_DATABASE_PATH"] = "test_data/hybridmind.db"
 os.environ["HYBRIDMIND_VECTOR_INDEX_PATH"] = "test_data/vector.index"
 os.environ["HYBRIDMIND_GRAPH_INDEX_PATH"] = "test_data/graph.pkl"
 
-from hybridmind.main import app
-from hybridmind.engine.cache import QueryCache, get_query_cache
-from hybridmind.middleware.rate_limit import RateLimiter
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
+from main import app
+from engine.cache import QueryCache, get_query_cache
+from middleware.rate_limit import RateLimiter
+from storage.vector_index import VectorIndex
+from engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
 
 
 @pytest.fixture

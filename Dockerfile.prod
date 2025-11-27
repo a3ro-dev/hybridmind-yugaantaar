@@ -1,7 +1,4 @@
 # HybridMind Production Dockerfile
-# Multi-stage build for optimized image
-
-# Stage 1: Builder
 FROM python:3.11-slim as builder
 
 WORKDIR /build
@@ -13,12 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 
-# Stage 2: Runtime
+# Runtime
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install wheels from builder
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 
@@ -26,33 +22,30 @@ RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 RUN useradd -m -u 1000 appuser
 
 # Application code
-COPY --chown=appuser:appuser hybridmind/ ./hybridmind/
-COPY --chown=appuser:appuser data/ ./data/
+COPY --chown=appuser:appuser api/ ./api/
+COPY --chown=appuser:appuser engine/ ./engine/
+COPY --chown=appuser:appuser middleware/ ./middleware/
+COPY --chown=appuser:appuser models/ ./models/
+COPY --chown=appuser:appuser storage/ ./storage/
+COPY --chown=appuser:appuser utils/ ./utils/
+COPY --chown=appuser:appuser ui/ ./ui/
+COPY --chown=appuser:appuser main.py config.py __init__.py ./
 
-# Create directories
+# Data directory
 RUN mkdir -p /app/data && chown -R appuser:appuser /app/data
 
 USER appuser
 
-# Environment
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    HYBRIDMIND_DATABASE_PATH=/app/data/hybridmind.db \
-    HYBRIDMIND_VECTOR_INDEX_PATH=/app/data/vector.index \
-    HYBRIDMIND_GRAPH_INDEX_PATH=/app/data/graph.pkl
+    PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/live')" || exit 1
 
-# Production server
-CMD ["python", "-m", "gunicorn", "hybridmind.main:app", \
+CMD ["python", "-m", "gunicorn", "main:app", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
      "--workers", "2", \
      "--bind", "0.0.0.0:8000", \
-     "--timeout", "120", \
-     "--keep-alive", "5", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+     "--timeout", "120"]

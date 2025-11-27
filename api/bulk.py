@@ -11,18 +11,18 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from hybridmind.api.dependencies import (
+from api.dependencies import (
     get_sqlite_store,
     get_vector_index,
     get_graph_index,
     get_embedding_engine,
     get_db_manager,
 )
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.storage.graph_index import GraphIndex
-from hybridmind.engine.embedding import EmbeddingEngine
-from hybridmind.engine.cache import invalidate_cache
+from storage.sqlite_store import SQLiteStore
+from storage.vector_index import VectorIndex
+from storage.graph_index import GraphIndex
+from engine.embedding import EmbeddingEngine
+from engine.cache import invalidate_cache
 
 logger = logging.getLogger(__name__)
 

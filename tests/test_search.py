@@ -7,13 +7,13 @@ import tempfile
 import numpy as np
 from pathlib import Path
 
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.storage.graph_index import GraphIndex
-from hybridmind.engine.embedding import EmbeddingEngine
-from hybridmind.engine.vector_search import VectorSearchEngine
-from hybridmind.engine.graph_search import GraphSearchEngine
-from hybridmind.engine.hybrid_ranker import HybridRanker
+from storage.sqlite_store import SQLiteStore
+from storage.vector_index import VectorIndex
+from storage.graph_index import GraphIndex
+from engine.embedding import EmbeddingEngine
+from engine.vector_search import VectorSearchEngine
+from engine.graph_search import GraphSearchEngine
+from engine.hybrid_ranker import HybridRanker
 
 
 @pytest.fixture
@@ -251,7 +251,7 @@ class TestLearnedRanker:
     
     def test_learned_ranker_basic(self):
         """Test basic learned ranker functionality."""
-        from hybridmind.engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
+        from engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
         
         ranker = LearnedCRSRanker()
         candidate = ScoredCandidate(
@@ -268,7 +268,7 @@ class TestLearnedRanker:
     
     def test_edge_type_weighting(self):
         """Test edge type weighting in learned ranker."""
-        from hybridmind.engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
+        from engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
         
         ranker = LearnedCRSRanker()
         
@@ -293,7 +293,7 @@ class TestLearnedRanker:
     
     def test_hop_decay(self):
         """Test hop distance decay in learned ranker."""
-        from hybridmind.engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
+        from engine.learned_ranker import LearnedCRSRanker, ScoredCandidate
         
         ranker = LearnedCRSRanker()
         

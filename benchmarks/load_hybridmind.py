@@ -11,10 +11,10 @@ from typing import List, Dict, Tuple
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.storage.graph_index import GraphIndex
-from hybridmind.engine.embedding import EmbeddingEngine
+from storage.sqlite_store import SQLiteStore
+from storage.vector_index import VectorIndex
+from storage.graph_index import GraphIndex
+from engine.embedding import EmbeddingEngine
 
 
 class HybridMindLoader:

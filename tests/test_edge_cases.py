@@ -16,11 +16,11 @@ os.environ["HYBRIDMIND_DATABASE_PATH"] = "test_data/hybridmind.db"
 os.environ["HYBRIDMIND_VECTOR_INDEX_PATH"] = "test_data/vector.index"
 os.environ["HYBRIDMIND_GRAPH_INDEX_PATH"] = "test_data/graph.pkl"
 
-from hybridmind.main import app
-from hybridmind.storage.sqlite_store import SQLiteStore
-from hybridmind.storage.vector_index import VectorIndex
-from hybridmind.storage.graph_index import GraphIndex
-from hybridmind.engine.embedding import EmbeddingEngine
+from main import app
+from storage.sqlite_store import SQLiteStore
+from storage.vector_index import VectorIndex
+from storage.graph_index import GraphIndex
+from engine.embedding import EmbeddingEngine
 
 
 @pytest.fixture

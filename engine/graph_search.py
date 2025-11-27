@@ -6,8 +6,8 @@ Handles graph traversal and proximity-based search.
 import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from hybridmind.storage.graph_index import GraphIndex
-from hybridmind.storage.sqlite_store import SQLiteStore
+from storage.graph_index import GraphIndex
+from storage.sqlite_store import SQLiteStore
 
 
 class GraphSearchEngine:

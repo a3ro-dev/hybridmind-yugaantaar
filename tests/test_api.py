@@ -12,7 +12,7 @@ os.environ["HYBRIDMIND_DATABASE_PATH"] = "test_data/hybridmind.db"
 os.environ["HYBRIDMIND_VECTOR_INDEX_PATH"] = "test_data/vector.index"
 os.environ["HYBRIDMIND_GRAPH_INDEX_PATH"] = "test_data/graph.pkl"
 
-from hybridmind.main import app
+from main import app
 
 
 @pytest.fixture

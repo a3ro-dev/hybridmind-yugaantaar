@@ -20,7 +20,7 @@ except ImportError:
     CHROMADB_AVAILABLE = False
     print("ChromaDB not installed. Run: pip install chromadb")
 
-from hybridmind.engine.embedding import EmbeddingEngine
+from engine.embedding import EmbeddingEngine
 
 
 class ChromaDBLoader:
