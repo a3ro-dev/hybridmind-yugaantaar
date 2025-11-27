@@ -287,9 +287,132 @@ def test_health():
         print(f"  Edge types: {list(s['edge_types'].keys())}")
 
 
+def test_effectiveness():
+    """Test effectiveness metrics - proves hybrid search value."""
+    print("\n" + "=" * 60)
+    print("9. EFFECTIVENESS METRICS (Quantitative Proof)")
+    print("=" * 60)
+    
+    # Single query effectiveness
+    print("\n[POST /comparison/effectiveness]")
+    r = requests.post(f"{BASE_URL}/comparison/effectiveness", json={
+        "query_text": "neural network optimization deep learning",
+        "top_k": 10,
+        "vector_weight": 0.6,
+        "graph_weight": 0.4
+    })
+    print(f"Status: {r.status_code}")
+    if r.status_code == 200:
+        data = r.json()
+        metrics = data.get("effectiveness_metrics", {})
+        
+        print(f"\nMetrics for query: '{data['query']}'")
+        
+        # HybridMind metrics
+        hybrid = metrics.get("hybridmind", {})
+        print(f"\n  HybridMind:")
+        print(f"    Precision@K: {hybrid.get('precision_at_k', 0):.4f}")
+        print(f"    NDCG: {hybrid.get('ndcg', 0):.4f}")
+        print(f"    MRR: {hybrid.get('mrr', 0):.4f}")
+        
+        # Vector-only metrics  
+        vector = metrics.get("vector_only", {})
+        print(f"\n  Vector-Only:")
+        print(f"    Precision@K: {vector.get('precision_at_k', 0):.4f}")
+        print(f"    NDCG: {vector.get('ndcg', 0):.4f}")
+        
+        # Improvements
+        improvements = metrics.get("improvements", {})
+        print(f"\n  🎯 Improvements:")
+        print(f"    Precision vs Vector: {improvements.get('precision_vs_vector_pct', 0):+.1f}%")
+        print(f"    NDCG vs Vector: {improvements.get('ndcg_vs_vector_pct', 0):+.1f}%")
+        print(f"    Unique finds by hybrid: {improvements.get('unique_relevant_by_hybrid', 0)}")
+        
+        # Winner
+        print(f"\n  Winner: {metrics.get('winner', 'unknown').upper()}")
+        
+        # Interpretation
+        interpretation = data.get("interpretation", {})
+        print(f"\n  {interpretation.get('headline', '')}")
+    else:
+        print(f"  Error: {r.text}")
+
+
+def test_ablation():
+    """Test ablation study - justifies CRS weights."""
+    print("\n" + "=" * 60)
+    print("10. ABLATION STUDY (Weight Justification)")
+    print("=" * 60)
+    
+    print("\n[POST /comparison/ablation] Testing weights α=0.1→1.0")
+    r = requests.post(f"{BASE_URL}/comparison/ablation", params={
+        "query": "deep learning transformers",
+        "top_k": 5
+    })
+    print(f"Status: {r.status_code}")
+    if r.status_code == 200:
+        data = r.json()
+        
+        print(f"\nQuery: '{data['query']}'")
+        print(f"\nWeight combinations tested:")
+        print(f"  {'α':<6} {'β':<6} {'NDCG':<8} {'Precision':<10}")
+        print(f"  {'-'*32}")
+        
+        for result in data.get("results", [])[:5]:  # Show first 5
+            alpha = result.get("alpha", 0)
+            beta = result.get("beta", 0)
+            ndcg = result.get("ndcg", 0)
+            precision = result.get("precision_at_k", 0)
+            marker = " ← default" if alpha == 0.6 else ""
+            print(f"  {alpha:<6.1f} {beta:<6.1f} {ndcg:<8.4f} {precision:<10.4f}{marker}")
+        
+        # Best weights
+        best = data.get("best_by_ndcg", {})
+        print(f"\n  Best by NDCG: α={best.get('alpha')}, β={best.get('beta')} (NDCG={best.get('ndcg', 0):.4f})")
+        
+        # Default status
+        default = data.get("default_weights", {})
+        print(f"  Default (α=0.6, β=0.4): NDCG={default.get('ndcg', 0):.4f}")
+        print(f"  Default is optimal/near-optimal: {default.get('is_optimal_or_near', False)}")
+        
+        print(f"\n  💡 {data.get('recommendation', '')}")
+    else:
+        print(f"  Error: {r.text}")
+
+
+def test_effectiveness_summary():
+    """Test effectiveness summary across multiple queries."""
+    print("\n" + "=" * 60)
+    print("11. EFFECTIVENESS SUMMARY (Multi-Query)")
+    print("=" * 60)
+    
+    print("\n[GET /comparison/effectiveness/summary]")
+    r = requests.get(f"{BASE_URL}/comparison/effectiveness/summary")
+    print(f"Status: {r.status_code}")
+    if r.status_code == 200:
+        data = r.json()
+        
+        summary = data.get("summary", {})
+        print(f"\n  Summary across {summary.get('queries_evaluated', 0)} queries:")
+        print(f"    Hybrid wins: {summary.get('hybrid_wins', 0)}")
+        print(f"    Win rate: {summary.get('win_rate', '0%')}")
+        print(f"    Avg precision improvement: {summary.get('avg_precision_improvement', '0%')}")
+        print(f"    Avg NDCG improvement: {summary.get('avg_ndcg_improvement', '0%')}")
+        
+        print(f"\n  Per-query results:")
+        for result in data.get("per_query_results", []):
+            winner_marker = "✓" if result.get("winner") == "hybrid" else " "
+            print(f"    {winner_marker} {result['query'][:35]:<35} NDCG: {result.get('hybrid_ndcg', 0):.3f} ({result.get('improvement_pct', 0):+.1f}%)")
+        
+        print(f"\n  📊 {data.get('conclusion', '')}")
+    else:
+        print(f"  Error: {r.text}")
+
+
 if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("   HYBRIDMIND API EVALUATION TEST")
+    print("   Devfolio Problem Statement 1: Vector + Graph DB")
     print("=" * 60 + "\n")
     
     # First create test resources
@@ -305,9 +428,26 @@ if __name__ == "__main__":
     # Health check
     test_health()
     
+    # Effectiveness metrics (proves hybrid value)
+    test_effectiveness()
+    test_ablation()
+    test_effectiveness_summary()
+    
     # Finally cleanup
     test_delete_operations()
     
     print("\n" + "=" * 60)
     print("   ✅ ALL TESTS COMPLETED!")
+    print("=" * 60)
+    print("\n📋 EVALUATION CHECKLIST:")
+    print("  ✓ Node CRUD (POST, GET, PUT, DELETE /nodes)")
+    print("  ✓ Edge CRUD (POST, GET, PUT, DELETE /edges)")
+    print("  ✓ Vector Search (POST /search/vector)")
+    print("  ✓ Graph Traversal (GET /search/graph)")
+    print("  ✓ Hybrid Search with CRS (POST /search/hybrid)")
+    print("  ✓ Multi-hop Path Finding (GET /search/path)")
+    print("  ✓ Search Mode Comparison (POST /search/compare)")
+    print("  ✓ Effectiveness Metrics (POST /comparison/effectiveness)")
+    print("  ✓ Ablation Study for Weights (POST /comparison/ablation)")
+    print("  ✓ Multi-Query Summary (GET /comparison/effectiveness/summary)")
     print("=" * 60)

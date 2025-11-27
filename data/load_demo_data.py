@@ -71,7 +71,7 @@ def load_arxiv_from_huggingface(num_papers: int = 200):
 
 
 def generate_citation_edges(papers: list, edge_ratio: float = 2.5):
-    """Generate citation relationships between papers."""
+    """Generate citation relationships between papers using simple random strategy."""
     edges = []
     num_edges = int(len(papers) * edge_ratio)
     
@@ -125,8 +125,157 @@ def generate_citation_edges(papers: list, edge_ratio: float = 2.5):
     return unique_edges
 
 
-def load_demo_data(num_papers: int = 150, clear_existing: bool = False):
-    """Load demo dataset into HybridMind."""
+def generate_semantic_edges(papers: list, embeddings: dict, similarity_threshold: float = 0.6, max_edges_per_node: int = 5):
+    """
+    Generate edges based on SEMANTIC SIMILARITY between papers.
+    
+    This creates more meaningful relationships that demonstrate
+    hybrid search value - papers are connected because they're
+    actually similar in content, not just random.
+    
+    Args:
+        papers: List of paper dicts
+        embeddings: Dict mapping paper_id -> embedding vector
+        similarity_threshold: Minimum cosine similarity to create edge
+        max_edges_per_node: Maximum outgoing edges per paper
+        
+    Returns:
+        List of edge dicts
+    """
+    import numpy as np
+    
+    print(f"Generating semantic edges (threshold={similarity_threshold})...")
+    
+    edges = []
+    paper_ids = [p["id"] for p in papers]
+    
+    # Build embedding matrix
+    embedding_list = [embeddings[pid] for pid in paper_ids]
+    embedding_matrix = np.vstack(embedding_list)
+    
+    # Normalize for cosine similarity
+    norms = np.linalg.norm(embedding_matrix, axis=1, keepdims=True)
+    embedding_matrix = embedding_matrix / np.maximum(norms, 1e-10)
+    
+    # Compute pairwise similarities
+    similarities = np.dot(embedding_matrix, embedding_matrix.T)
+    
+    # Generate edges based on similarity
+    for i, source_id in enumerate(paper_ids):
+        # Get similarity scores for this paper
+        sim_scores = similarities[i]
+        
+        # Get top similar papers (excluding self)
+        top_indices = np.argsort(sim_scores)[::-1]
+        
+        edge_count = 0
+        for j in top_indices:
+            if edge_count >= max_edges_per_node:
+                break
+            if i == j:
+                continue
+                
+            sim = sim_scores[j]
+            if sim < similarity_threshold:
+                break
+            
+            target_id = paper_ids[j]
+            
+            # Determine edge type based on similarity strength
+            if sim >= 0.85:
+                edge_type = "highly_similar"
+                weight = 1.0
+            elif sim >= 0.75:
+                edge_type = "extends"
+                weight = 0.9
+            elif sim >= 0.65:
+                edge_type = "related_to"
+                weight = 0.7
+            else:
+                edge_type = "same_topic"
+                weight = 0.5
+            
+            edge_id = f"sem-{source_id}-{target_id}"
+            edges.append({
+                "id": edge_id,
+                "source": source_id,
+                "target": target_id,
+                "type": edge_type,
+                "weight": weight,
+                "similarity": round(float(sim), 4)
+            })
+            edge_count += 1
+    
+    print(f"Generated {len(edges)} semantic edges")
+    
+    # Report edge type distribution
+    type_counts = {}
+    for e in edges:
+        t = e["type"]
+        type_counts[t] = type_counts.get(t, 0) + 1
+    print(f"  Edge types: {type_counts}")
+    
+    return edges
+
+
+def generate_hybrid_edges(papers: list, embeddings: dict, edge_ratio: float = 2.5, semantic_ratio: float = 0.6):
+    """
+    Generate edges using HYBRID strategy: semantic similarity + category-based.
+    
+    This creates the most realistic citation network:
+    - 60% edges from semantic similarity (papers cite similar work)
+    - 40% edges from category/random (cross-pollination, serendipity)
+    
+    Args:
+        papers: List of paper dicts
+        embeddings: Dict mapping paper_id -> embedding vector
+        edge_ratio: Total edges per node
+        semantic_ratio: Fraction of edges from semantic similarity
+        
+    Returns:
+        List of edge dicts
+    """
+    num_total = int(len(papers) * edge_ratio)
+    num_semantic = int(num_total * semantic_ratio)
+    num_random = num_total - num_semantic
+    
+    print(f"\nGenerating hybrid edges: {num_semantic} semantic + {num_random} category-based")
+    
+    # Generate semantic edges
+    max_per_node = max(1, num_semantic // len(papers))
+    semantic_edges = generate_semantic_edges(
+        papers, embeddings, 
+        similarity_threshold=0.5, 
+        max_edges_per_node=max_per_node
+    )
+    
+    # Generate category-based edges
+    random_edges = generate_citation_edges(papers, edge_ratio=num_random/len(papers))
+    
+    # Combine and deduplicate
+    all_edges = semantic_edges + random_edges
+    seen = set()
+    unique_edges = []
+    for e in all_edges:
+        key = (e["source"], e["target"])
+        if key not in seen:
+            seen.add(key)
+            unique_edges.append(e)
+    
+    print(f"Total unique edges: {len(unique_edges)}")
+    return unique_edges
+
+
+def load_demo_data(num_papers: int = 150, clear_existing: bool = False, use_semantic_edges: bool = True):
+    """
+    Load demo dataset into HybridMind.
+    
+    Args:
+        num_papers: Number of papers to load
+        clear_existing: If True, clear existing data without prompt
+        use_semantic_edges: If True, create edges based on semantic similarity (RECOMMENDED)
+                           This creates more meaningful relationships for hybrid search demo.
+    """
     print("=" * 50)
     print("HybridMind Data Loader")
     print("=" * 50)
@@ -159,18 +308,20 @@ def load_demo_data(num_papers: int = 150, clear_existing: bool = False):
     # Load papers from Hugging Face
     papers = load_arxiv_from_huggingface(num_papers)
     
-    # Generate edges
-    edges = generate_citation_edges(papers)
-    
     print(f"\nLoading {len(papers)} papers into HybridMind...")
     
-    # Load papers
+    # Generate embeddings for all papers (needed for semantic edges)
+    embeddings = {}
+    print("  Generating embeddings...")
+    
+    # Load papers and collect embeddings
     for i, paper in enumerate(papers, 1):
         if i % 20 == 0 or i == len(papers):
             print(f"  Progress: {i}/{len(papers)} papers...")
         
         # Generate embedding
         embedding = embedding_engine.embed(paper["text"])
+        embeddings[paper["id"]] = embedding
         
         # Store in SQLite
         sqlite_store.create_node(
@@ -185,6 +336,14 @@ def load_demo_data(num_papers: int = 150, clear_existing: bool = False):
         
         # Add to graph index
         graph_index.add_node(paper["id"])
+    
+    # Generate edges - use semantic similarity or random based on flag
+    if use_semantic_edges:
+        print("\n🔗 Using SEMANTIC SIMILARITY to create edges (recommended for demos)")
+        edges = generate_hybrid_edges(papers, embeddings, edge_ratio=2.5, semantic_ratio=0.6)
+    else:
+        print("\n🔗 Using category-based random edges")
+        edges = generate_citation_edges(papers, edge_ratio=2.5)
     
     print(f"\nLoading {len(edges)} relationships...")
     
@@ -236,6 +395,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Load demo data into HybridMind")
     parser.add_argument("--papers", type=int, default=150, help="Number of papers to load")
     parser.add_argument("--clear", action="store_true", help="Clear existing data without prompt")
+    parser.add_argument("--random-edges", action="store_true", 
+                       help="Use random category-based edges instead of semantic similarity (NOT recommended)")
     args = parser.parse_args()
     
-    load_demo_data(num_papers=args.papers, clear_existing=args.clear)
+    load_demo_data(
+        num_papers=args.papers, 
+        clear_existing=args.clear,
+        use_semantic_edges=not args.random_edges
+    )

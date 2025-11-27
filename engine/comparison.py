@@ -605,7 +605,8 @@ class ComparisonEngine:
         query_text: str,
         top_k: int = 10,
         vector_weight: float = 0.6,
-        graph_weight: float = 0.4
+        graph_weight: float = 0.4,
+        include_effectiveness: bool = True
     ) -> Dict[str, Any]:
         """
         Run the same query across all three systems and compare results.
@@ -615,6 +616,7 @@ class ComparisonEngine:
         - Latency comparison
         - Overlap analysis
         - Unique results per system
+        - Effectiveness metrics (precision, recall, NDCG, MRR)
         """
         start_total = time.perf_counter()
         
@@ -624,6 +626,9 @@ class ComparisonEngine:
         )
         neo4j_result = self.neo4j.search_by_text(query_text, top_k)
         chromadb_result = self.chromadb.search(query_text, top_k)
+        
+        # Also get vector-only results from HybridMind for fair comparison
+        vector_only_result = self.search_hybridmind_vector_only(query_text, top_k)
         
         total_time = (time.perf_counter() - start_total) * 1000
         
@@ -643,6 +648,54 @@ class ComparisonEngine:
         hm_unique = hm_ids - neo_ids - chroma_ids
         neo_unique = neo_ids - hm_ids - chroma_ids
         chroma_unique = chroma_ids - hm_ids - neo_ids
+        
+        # Compute effectiveness metrics
+        effectiveness_metrics = None
+        if include_effectiveness:
+            from engine.effectiveness import get_effectiveness_calculator
+            calc = get_effectiveness_calculator()
+            
+            effectiveness = calc.compare_systems(
+                hybrid_results=hybridmind_result.results,
+                vector_results=vector_only_result.results,
+                graph_results=neo4j_result.results,
+                k=top_k
+            )
+            
+            effectiveness_metrics = {
+                "hybridmind": {
+                    "precision_at_k": effectiveness.hybridmind.precision_at_k,
+                    "recall_at_k": effectiveness.hybridmind.recall_at_k,
+                    "mrr": effectiveness.hybridmind.mrr,
+                    "ndcg": effectiveness.hybridmind.ndcg,
+                    "coverage": effectiveness.hybridmind.coverage,
+                    "avg_score": effectiveness.hybridmind.avg_score
+                },
+                "vector_only": {
+                    "precision_at_k": effectiveness.vector_only.precision_at_k,
+                    "recall_at_k": effectiveness.vector_only.recall_at_k,
+                    "mrr": effectiveness.vector_only.mrr,
+                    "ndcg": effectiveness.vector_only.ndcg,
+                    "coverage": effectiveness.vector_only.coverage,
+                    "avg_score": effectiveness.vector_only.avg_score
+                },
+                "graph_only": {
+                    "precision_at_k": effectiveness.graph_only.precision_at_k,
+                    "recall_at_k": effectiveness.graph_only.recall_at_k,
+                    "mrr": effectiveness.graph_only.mrr,
+                    "ndcg": effectiveness.graph_only.ndcg,
+                    "coverage": effectiveness.graph_only.coverage,
+                    "avg_score": effectiveness.graph_only.avg_score
+                },
+                "improvements": {
+                    "precision_vs_vector_pct": effectiveness.precision_improvement_vs_vector,
+                    "recall_vs_vector_pct": effectiveness.recall_improvement_vs_vector,
+                    "ndcg_vs_vector_pct": effectiveness.ndcg_improvement_vs_vector,
+                    "unique_relevant_by_hybrid": effectiveness.unique_finds_by_hybrid
+                },
+                "winner": effectiveness.winner,
+                "summary": effectiveness.summary
+            }
         
         return {
             "query": query_text,
@@ -698,6 +751,7 @@ class ComparisonEngine:
                     )[0]
                 }
             },
+            "effectiveness_metrics": effectiveness_metrics,
             "system_status": {
                 "hybridmind": hybridmind_result.error is None,
                 "neo4j": neo4j_result.error is None,
