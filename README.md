@@ -35,9 +35,10 @@ yugaantar/
 │   └── bulk.py          # Bulk operations
 ├── engine/              # Core algorithms
 │   ├── embedding.py     # Text embeddings
-│   ├── cache.py         # Query caching
+│   ├── vector_search.py # FAISS vector search
+│   ├── graph_search.py  # NetworkX graph traversal
 │   ├── hybrid_ranker.py # CRS algorithm
-│   └── learned_ranker.py # Advanced CRS
+│   └── cache.py         # Query caching
 ├── storage/             # Data layer
 │   ├── sqlite_store.py  # Persistent storage
 │   ├── vector_index.py  # FAISS index
@@ -55,11 +56,7 @@ yugaantar/
 ## Docker
 
 ```bash
-# Development
 docker-compose up --build
-
-# Production (with monitoring)
-docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ## API

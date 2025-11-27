@@ -1,6 +1,7 @@
 """
 HybridMind - Vector + Graph Native Database
 Research-grade hybrid retrieval system with CRS algorithm
+Includes comparison mode for HybridMind vs Neo4j vs ChromaDB
 """
 
 import sys
@@ -15,7 +16,7 @@ import time
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from datetime import datetime
 
 st.set_page_config(
@@ -42,6 +43,7 @@ st.markdown("""
         --accent-purple: #a371f7;
         --accent-orange: #d29922;
         --accent-red: #f85149;
+        --accent-cyan: #39c5cf;
     }
     
     html, body, [class*="css"] {
@@ -97,6 +99,12 @@ st.markdown("""
         background: rgba(248, 81, 73, 0.15);
         color: var(--accent-red);
         border: 1px solid rgba(248, 81, 73, 0.3);
+    }
+    
+    .status-warning {
+        background: rgba(210, 153, 34, 0.15);
+        color: var(--accent-orange);
+        border: 1px solid rgba(210, 153, 34, 0.3);
     }
     
     .metric-card {
@@ -169,6 +177,10 @@ st.markdown("""
     .score-graph { background: rgba(63, 185, 80, 0.2); color: var(--accent-green); }
     .score-combined { background: rgba(163, 113, 247, 0.2); color: var(--accent-purple); }
     
+    .system-hybridmind { border-left: 3px solid var(--accent-purple); }
+    .system-neo4j { border-left: 3px solid var(--accent-green); }
+    .system-chromadb { border-left: 3px solid var(--accent-blue); }
+    
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
@@ -182,6 +194,24 @@ st.markdown("""
         padding: 10px 20px;
         font-weight: 500;
         font-size: 0.875rem;
+    }
+    
+    .comparison-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+        height: 100%;
+    }
+    
+    .winner-badge {
+        background: linear-gradient(135deg, rgba(63, 185, 80, 0.2) 0%, rgba(63, 185, 80, 0.1) 100%);
+        border: 1px solid rgba(63, 185, 80, 0.4);
+        color: var(--accent-green);
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 0.75rem;
+        font-weight: 600;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -239,14 +269,14 @@ def render_sidebar() -> str:
         st.sidebar.markdown('<span class="status-badge status-ok">● ONLINE</span>', unsafe_allow_html=True)
     else:
         st.sidebar.markdown('<span class="status-badge status-error">● OFFLINE</span>', unsafe_allow_html=True)
-        st.sidebar.warning("Start API: `uvicorn hybridmind.main:app`")
+        st.sidebar.warning("Start API: `uvicorn main:app`")
     
     st.sidebar.markdown("---")
     
     # Navigation
     page = st.sidebar.radio(
         "Module",
-        ["Search", "System", "Explorer"],
+        ["Search", "Comparison", "System", "Explorer"],
         label_visibility="collapsed"
     )
     
@@ -447,6 +477,472 @@ def display_search_results(results: dict, client_time: float, score_key: str = "
         fig = px.box(pd.DataFrame(score_data), x="Type", y="Score", color="Type",
                      color_discrete_map={"Vector": "#58a6ff", "Graph": "#3fb950", "CRS": "#a371f7"})
         fig.update_layout(height=250, showlegend=False, margin=dict(t=10, b=10))
+        st.plotly_chart(fig, use_container_width=True)
+
+
+# ============================================================================
+# COMPARISON PAGE
+# ============================================================================
+
+def render_comparison_page():
+    """Cross-database comparison interface."""
+    st.markdown("### Database Comparison")
+    st.caption("HybridMind vs Neo4j vs ChromaDB — Side-by-side analysis")
+    
+    tabs = st.tabs(["Compare", "Benchmark", "System Status"])
+    
+    with tabs[0]:
+        render_comparison_search()
+    with tabs[1]:
+        render_benchmark()
+    with tabs[2]:
+        render_comparison_status()
+
+
+def render_comparison_status():
+    """Show status of all database systems."""
+    st.markdown("#### System Availability")
+    
+    status = api_call("/comparison/status")
+    if not status:
+        st.error("Could not fetch system status")
+        return
+    
+    c1, c2, c3 = st.columns(3)
+    
+    # HybridMind
+    with c1:
+        hm = status.get("hybridmind", {})
+        available = hm.get("available", False)
+        st.markdown(f"""
+        <div class="comparison-card system-hybridmind">
+            <h4 style="margin:0; color: #a371f7;">◆ HybridMind</h4>
+            <p style="color: #8b949e; font-size: 0.8rem; margin: 4px 0;">Hybrid (Vector + Graph)</p>
+            <span class="status-badge {'status-ok' if available else 'status-error'}">
+                {'● Online' if available else '● Offline'}
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+        if available:
+            st.metric("Nodes", f"{hm.get('nodes', 0):,}")
+            st.metric("Edges", f"{hm.get('edges', 0):,}")
+            st.metric("Vectors", f"{hm.get('vector_index_size', 0):,}")
+    
+    # Neo4j
+    with c2:
+        neo = status.get("neo4j", {})
+        available = neo.get("available", False)
+        st.markdown(f"""
+        <div class="comparison-card system-neo4j">
+            <h4 style="margin:0; color: #3fb950;">⬡ Neo4j</h4>
+            <p style="color: #8b949e; font-size: 0.8rem; margin: 4px 0;">Graph-Only</p>
+            <span class="status-badge {'status-ok' if available else 'status-warning'}">
+                {'● Online' if available else '○ Offline'}
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+        if available:
+            st.metric("Nodes", f"{neo.get('nodes', 0):,}")
+            st.metric("Edges", f"{neo.get('edges', 0):,}")
+        else:
+            st.caption("Start Neo4j to enable comparison")
+            st.code("docker run -p 7687:7687 neo4j", language="bash")
+    
+    # ChromaDB
+    with c3:
+        chroma = status.get("chromadb", {})
+        available = chroma.get("available", False)
+        st.markdown(f"""
+        <div class="comparison-card system-chromadb">
+            <h4 style="margin:0; color: #58a6ff;">◈ ChromaDB</h4>
+            <p style="color: #8b949e; font-size: 0.8rem; margin: 4px 0;">Vector-Only</p>
+            <span class="status-badge {'status-ok' if available else 'status-warning'}">
+                {'● Online' if available else '○ Offline'}
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+        if available:
+            st.metric("Documents", f"{chroma.get('documents', 0):,}")
+        else:
+            st.caption("Load data to enable comparison")
+            st.code("python data/load_all_databases.py", language="bash")
+
+
+def render_comparison_search():
+    """Side-by-side search comparison."""
+    st.markdown("#### Search Comparison")
+    
+    # Query input
+    query = st.text_input("Query", placeholder="Enter search query...", key="cmp_q")
+    
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        top_k = st.number_input("Results per system", 1, 20, 10, key="cmp_k")
+    with c2:
+        v_weight = st.slider("α (HybridMind vector)", 0.0, 1.0, 0.6, 0.05, key="cmp_v")
+    with c3:
+        g_weight = st.slider("β (HybridMind graph)", 0.0, 1.0, 0.4, 0.05, key="cmp_g")
+    
+    # Sample queries
+    with st.expander("📝 Sample Queries"):
+        samples = api_call("/comparison/sample-queries")
+        if samples:
+            st.markdown("**Semantic:**")
+            for q in samples.get("semantic_queries", [])[:3]:
+                if st.button(q, key=f"sq_{q[:10]}"):
+                    st.session_state["cmp_q"] = q
+                    st.rerun()
+            
+            st.markdown("**Technical:**")
+            for q in samples.get("specific_queries", [])[:3]:
+                if st.button(q, key=f"tq_{q[:10]}"):
+                    st.session_state["cmp_q"] = q
+                    st.rerun()
+    
+    if st.button("🔍 Compare", key="cmp_btn", type="primary"):
+        if not query:
+            st.warning("Enter a query")
+            return
+        
+        with st.spinner("Querying all systems..."):
+            result = api_call("/comparison/search", method="POST", data={
+                "query_text": query,
+                "top_k": top_k,
+                "vector_weight": v_weight,
+                "graph_weight": g_weight
+            })
+        
+        if result:
+            display_comparison_results(result)
+
+
+def display_comparison_results(result: dict):
+    """Display comparison results with analysis."""
+    
+    # Overall metrics
+    st.markdown("---")
+    st.markdown("#### Results")
+    
+    analysis = result.get("analysis", {})
+    latency = analysis.get("latency_comparison", {})
+    
+    # Latency comparison chart
+    latency_data = pd.DataFrame([
+        {"System": "HybridMind", "Latency (ms)": latency.get("hybridmind_ms", 0), "Type": "Hybrid"},
+        {"System": "Neo4j", "Latency (ms)": latency.get("neo4j_ms", 0), "Type": "Graph"},
+        {"System": "ChromaDB", "Latency (ms)": latency.get("chromadb_ms", 0), "Type": "Vector"},
+    ])
+    
+    c1, c2 = st.columns([2, 1])
+    
+    with c1:
+        fig = px.bar(
+            latency_data,
+            x="System",
+            y="Latency (ms)",
+            color="System",
+            color_discrete_map={
+                "HybridMind": "#a371f7",
+                "Neo4j": "#3fb950",
+                "ChromaDB": "#58a6ff"
+            }
+        )
+        fig.update_layout(
+            height=200,
+            margin=dict(t=10, b=10, l=10, r=10),
+            showlegend=False,
+            xaxis_title="",
+            yaxis_title="Latency (ms)"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with c2:
+        st.metric("Fastest", latency.get("fastest", "-").upper())
+        st.metric("Total Unique", analysis.get("total_unique_results", 0))
+        st.metric("Common to All", analysis.get("common_to_all", 0))
+    
+    # Results columns
+    st.markdown("#### Side-by-Side Results")
+    
+    results = result.get("results", {})
+    c1, c2, c3 = st.columns(3)
+    
+    # HybridMind results
+    with c1:
+        hm = results.get("hybridmind", {})
+        st.markdown(f"""
+        <div style="border-left: 3px solid #a371f7; padding-left: 12px;">
+            <h5 style="color: #a371f7; margin: 0;">◆ HybridMind</h5>
+            <span style="color: #8b949e; font-size: 0.8rem;">{hm.get('latency_ms', 0):.1f}ms • {hm.get('count', 0)} results</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if hm.get("error"):
+            st.error(hm["error"])
+        else:
+            for i, item in enumerate(hm.get("items", [])[:5], 1):
+                with st.container():
+                    st.markdown(f"**{i}.** `{item['node_id'][:15]}...`")
+                    st.caption(f"Score: {item.get('score', 0):.3f} (V:{item.get('vector_score', 0):.2f} G:{item.get('graph_score', 0):.2f})")
+                    st.text(item.get("text", "")[:100] + "...")
+    
+    # Neo4j results
+    with c2:
+        neo = results.get("neo4j", {})
+        st.markdown(f"""
+        <div style="border-left: 3px solid #3fb950; padding-left: 12px;">
+            <h5 style="color: #3fb950; margin: 0;">⬡ Neo4j</h5>
+            <span style="color: #8b949e; font-size: 0.8rem;">{neo.get('latency_ms', 0):.1f}ms • {neo.get('count', 0)} results</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if neo.get("error"):
+            st.warning(neo["error"])
+        else:
+            for i, item in enumerate(neo.get("items", [])[:5], 1):
+                with st.container():
+                    st.markdown(f"**{i}.** `{item['node_id'][:15]}...`")
+                    st.caption(f"Score: {item.get('score', 0):.3f}")
+                    st.text(item.get("text", "")[:100] + "...")
+    
+    # ChromaDB results
+    with c3:
+        chroma = results.get("chromadb", {})
+        st.markdown(f"""
+        <div style="border-left: 3px solid #58a6ff; padding-left: 12px;">
+            <h5 style="color: #58a6ff; margin: 0;">◈ ChromaDB</h5>
+            <span style="color: #8b949e; font-size: 0.8rem;">{chroma.get('latency_ms', 0):.1f}ms • {chroma.get('count', 0)} results</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if chroma.get("error"):
+            st.warning(chroma["error"])
+        else:
+            for i, item in enumerate(chroma.get("items", [])[:5], 1):
+                with st.container():
+                    st.markdown(f"**{i}.** `{item['node_id'][:15]}...`")
+                    st.caption(f"Score: {item.get('score', 0):.3f}")
+                    st.text(item.get("text", "")[:100] + "...")
+    
+    # Overlap analysis
+    st.markdown("---")
+    st.markdown("#### Overlap Analysis")
+    
+    overlaps = analysis.get("overlaps", {})
+    unique = analysis.get("unique_per_system", {})
+    
+    # Venn-style metrics
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("HM ∩ Neo4j", overlaps.get("hybridmind_neo4j", 0))
+    c2.metric("HM ∩ Chroma", overlaps.get("hybridmind_chromadb", 0))
+    c3.metric("Neo4j ∩ Chroma", overlaps.get("neo4j_chromadb", 0))
+    c4.metric("All Three", analysis.get("common_to_all", 0))
+    
+    # Unique results
+    st.markdown("**Unique Discoveries:**")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Only HybridMind", unique.get("hybridmind", 0), help="Results found only by HybridMind")
+    c2.metric("Only Neo4j", unique.get("neo4j", 0), help="Results found only by Neo4j")
+    c3.metric("Only ChromaDB", unique.get("chromadb", 0), help="Results found only by ChromaDB")
+
+
+def render_benchmark():
+    """Benchmark runner interface."""
+    st.markdown("#### Performance Benchmark")
+    st.caption("Run comprehensive latency and throughput tests across all systems")
+    
+    # Benchmark configuration
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        st.markdown("**Configuration**")
+        iterations = st.slider("Iterations per query", 1, 10, 3, key="bench_iter")
+        top_k = st.number_input("Results per query", 1, 50, 10, key="bench_k")
+    
+    with c2:
+        st.markdown("**Test Queries**")
+        query_option = st.radio(
+            "Query source",
+            ["Default suite", "Custom queries"],
+            key="bench_src"
+        )
+    
+    if query_option == "Custom queries":
+        custom_queries = st.text_area(
+            "Queries (one per line)",
+            value="machine learning\ndeep learning neural networks\nnatural language processing",
+            key="bench_custom"
+        )
+        queries = [q.strip() for q in custom_queries.split("\n") if q.strip()]
+    else:
+        samples = api_call("/comparison/sample-queries")
+        queries = samples.get("benchmark_suite", [])[:10] if samples else [
+            "machine learning",
+            "deep learning",
+            "natural language processing"
+        ]
+        st.info(f"Using {len(queries)} default test queries")
+    
+    if st.button("🚀 Run Benchmark", key="bench_run", type="primary"):
+        if not queries:
+            st.warning("No queries specified")
+            return
+        
+        progress = st.progress(0, text="Initializing benchmark...")
+        
+        with st.spinner("Running benchmark... This may take a minute."):
+            result = api_call("/comparison/benchmark", method="POST", data={
+                "queries": queries,
+                "top_k": top_k,
+                "iterations": iterations
+            }, timeout=120)
+        
+        progress.progress(100, text="Complete!")
+        
+        if result:
+            display_benchmark_results(result)
+
+
+def display_benchmark_results(result: dict):
+    """Display benchmark results with visualizations."""
+    
+    st.markdown("---")
+    st.markdown("#### Benchmark Results")
+    
+    config = result.get("benchmark_config", {})
+    stats = result.get("statistics", {})
+    winner = result.get("winner", {})
+    
+    # Config summary
+    st.caption(f"Queries: {config.get('queries_count', 0)} • Iterations: {config.get('iterations_per_query', 0)} • Top-K: {config.get('top_k', 10)}")
+    
+    # Winner badges
+    c1, c2 = st.columns(2)
+    with c1:
+        fastest = winner.get("lowest_latency", "-")
+        st.markdown(f"""
+        <div style="background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.3); 
+                    border-radius: 8px; padding: 16px; text-align: center;">
+            <span style="color: #8b949e; font-size: 0.75rem;">LOWEST LATENCY</span><br>
+            <span style="color: #3fb950; font-size: 1.5rem; font-weight: 600;">{fastest.upper()}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with c2:
+        throughput = winner.get("highest_throughput", "-")
+        st.markdown(f"""
+        <div style="background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3); 
+                    border-radius: 8px; padding: 16px; text-align: center;">
+            <span style="color: #8b949e; font-size: 0.75rem;">HIGHEST THROUGHPUT</span><br>
+            <span style="color: #58a6ff; font-size: 1.5rem; font-weight: 600;">{throughput.upper()}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Latency comparison table
+    st.markdown("**Latency Statistics (ms)**")
+    
+    latency_rows = []
+    for system, data in stats.items():
+        if data.get("error"):
+            latency_rows.append({
+                "System": system.upper(),
+                "Avg": "-",
+                "P50": "-",
+                "P95": "-",
+                "P99": "-",
+                "Min": "-",
+                "Max": "-",
+                "QPS": "-"
+            })
+        else:
+            latency_rows.append({
+                "System": system.upper(),
+                "Avg": f"{data.get('avg_latency_ms', 0):.1f}",
+                "P50": f"{data.get('p50_latency_ms', 0):.1f}",
+                "P95": f"{data.get('p95_latency_ms', 0):.1f}",
+                "P99": f"{data.get('p99_latency_ms', 0):.1f}",
+                "Min": f"{data.get('min_latency_ms', 0):.1f}",
+                "Max": f"{data.get('max_latency_ms', 0):.1f}",
+                "QPS": f"{data.get('throughput_qps', 0):.1f}"
+            })
+    
+    df = pd.DataFrame(latency_rows)
+    st.dataframe(df, use_container_width=True, hide_index=True)
+    
+    # Latency bar chart
+    st.markdown("**Average Latency Comparison**")
+    
+    chart_data = []
+    colors = {"hybridmind": "#a371f7", "neo4j": "#3fb950", "chromadb": "#58a6ff"}
+    
+    for system, data in stats.items():
+        if not data.get("error"):
+            chart_data.append({
+                "System": system.capitalize(),
+                "Latency (ms)": data.get("avg_latency_ms", 0),
+                "P95 (ms)": data.get("p95_latency_ms", 0)
+            })
+    
+    if chart_data:
+        df_chart = pd.DataFrame(chart_data)
+        fig = go.Figure()
+        
+        fig.add_trace(go.Bar(
+            name="Average",
+            x=df_chart["System"],
+            y=df_chart["Latency (ms)"],
+            marker_color=["#a371f7", "#3fb950", "#58a6ff"][:len(chart_data)]
+        ))
+        
+        fig.add_trace(go.Bar(
+            name="P95",
+            x=df_chart["System"],
+            y=df_chart["P95 (ms)"],
+            marker_color=["rgba(163,113,247,0.5)", "rgba(63,185,80,0.5)", "rgba(88,166,255,0.5)"][:len(chart_data)]
+        ))
+        
+        fig.update_layout(
+            barmode="group",
+            height=300,
+            margin=dict(t=20, b=20),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            yaxis_title="Latency (ms)"
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Throughput chart
+    st.markdown("**Throughput (Queries/Second)**")
+    
+    throughput_data = []
+    for system, data in stats.items():
+        if not data.get("error"):
+            throughput_data.append({
+                "System": system.capitalize(),
+                "QPS": data.get("throughput_qps", 0)
+            })
+    
+    if throughput_data:
+        df_qps = pd.DataFrame(throughput_data)
+        fig = px.bar(
+            df_qps,
+            x="System",
+            y="QPS",
+            color="System",
+            color_discrete_map={
+                "Hybridmind": "#a371f7",
+                "Neo4j": "#3fb950",
+                "Chromadb": "#58a6ff"
+            }
+        )
+        fig.update_layout(
+            height=250,
+            margin=dict(t=10, b=10),
+            showlegend=False,
+            yaxis_title="Queries per Second"
+        )
         st.plotly_chart(fig, use_container_width=True)
 
 
@@ -708,6 +1204,8 @@ def main():
     
     if page == "Search":
         render_search_page()
+    elif page == "Comparison":
+        render_comparison_page()
     elif page == "System":
         render_system_page()
     elif page == "Explorer":

@@ -48,7 +48,7 @@ pytest>=7.4.3
 pytest-asyncio>=0.21.1
 httpx>=0.25.1
 
-Benchmarks (optional)
+# Benchmarks (optional)
 neo4j>=5.0.0
 chromadb>=0.4.0
 datasets>=2.14.0

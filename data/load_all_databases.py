@@ -211,19 +211,18 @@ def load_neo4j(papers: list, edges: list, uri: str = "bolt://localhost:7687",
 # CHROMADB LOADER
 # ============================================================================
 
-def load_chromadb(papers: list):
+def load_chromadb(papers: list, chromadb_path: str = "data/chromadb"):
     """Load data into ChromaDB (vector-only database)."""
     print("\n[3/3] Loading ChromaDB (Vector-only)...")
     
     try:
         import chromadb
-        from chromadb.config import Settings
     except ImportError:
-        print("  ✗ ChromaDB not installed")
+        print("  ✗ ChromaDB not installed. Install with: pip install chromadb")
         return False
     
     # Create persistent client
-    client = chromadb.PersistentClient(path="data/chromadb")
+    client = chromadb.PersistentClient(path=chromadb_path)
     
     # Delete existing collection
     try:
