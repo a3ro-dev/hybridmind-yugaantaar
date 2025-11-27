@@ -25,6 +25,7 @@ class EmbeddingEngine:
     """
     Embedding generation using sentence-transformers.
     Falls back to mock embeddings if library not available.
+    Auto-detects GPU for faster inference.
     """
     
     def __init__(
@@ -38,14 +39,28 @@ class EmbeddingEngine:
         
         Args:
             model_name: Name of the sentence-transformer model
-            device: Device to run model on ('cpu', 'cuda', etc.)
+            device: Device to run model on ('cpu', 'cuda', 'auto'). If None, auto-detects GPU.
             cache_folder: Folder to cache model files
         """
         self.model_name = model_name
         self._model = None
-        self._device = device
         self._cache_folder = cache_folder
         self._dimension: Optional[int] = None
+        
+        # Auto-detect GPU if device not specified
+        if device is None or device == "auto":
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    self._device = "cuda"
+                    logger.info(f"GPU detected: {torch.cuda.get_device_name(0)} - using CUDA")
+                else:
+                    self._device = "cpu"
+                    logger.info("No GPU detected - using CPU")
+            except ImportError:
+                self._device = "cpu"
+        else:
+            self._device = device
         
         # Default dimensions for known models
         self._known_dimensions = {
