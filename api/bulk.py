@@ -1,9 +1,11 @@
 """
 Bulk operations API endpoints for HybridMind.
 Fast batch import for nodes and edges.
+Includes LLM-powered unstructured data processing.
 """
 
 import logging
+import os
 import time
 import uuid
 from typing import Any, Dict, List, Optional
@@ -27,6 +29,9 @@ from engine.cache import invalidate_cache
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/bulk", tags=["Bulk Operations"])
+
+# Default API key for Vercel AI Gateway
+DEFAULT_AI_GATEWAY_KEY = "vck_5Y5hFnC2UbaXHL8q52bxbTaTJyl8GlQv7BxTmbqwJEeVIcf1E11nh4kv"
 
 
 # ==================== Request/Response Models ====================
@@ -87,6 +92,26 @@ class BulkImportResult(BaseModel):
     nodes: BulkResult
     edges: BulkResult
     total_elapsed_ms: float
+
+
+class UnstructuredDataRequest(BaseModel):
+    """Request for processing unstructured data via LLM."""
+    text: str = Field(..., min_length=10, max_length=100000, description="Raw unstructured text to process")
+    api_key: Optional[str] = Field(default=None, description="Optional Vercel AI Gateway API key")
+    model: str = Field(default="google/gemini-3-pro-preview", description="LLM model to use")
+
+
+class UnstructuredDataResult(BaseModel):
+    """Result of unstructured data processing."""
+    success: bool
+    summary: str
+    nodes_created: int
+    edges_created: int
+    nodes_failed: int
+    edges_failed: int
+    extracted_entities: List[Dict[str, Any]]
+    errors: List[str]
+    elapsed_ms: float
 
 
 # ==================== Endpoints ====================
@@ -341,6 +366,188 @@ async def bulk_import(
         nodes=node_result,
         edges=edge_result,
         total_elapsed_ms=round(total_elapsed, 2)
+    )
+
+
+@router.post("/unstructured", response_model=UnstructuredDataResult)
+async def process_unstructured_data(
+    request: UnstructuredDataRequest,
+    sqlite_store: SQLiteStore = Depends(get_sqlite_store),
+    vector_index: VectorIndex = Depends(get_vector_index),
+    graph_index: GraphIndex = Depends(get_graph_index),
+    embedding_engine: EmbeddingEngine = Depends(get_embedding_engine),
+):
+    """
+    Process unstructured text using LLM and extract knowledge graph.
+    
+    Uses Vercel AI Gateway with Google Gemini to:
+    - Extract entities, concepts, and facts from raw text
+    - Create structured nodes with rich metadata
+    - Identify and create relationships between nodes
+    
+    Perfect for ingesting:
+    - Wikipedia articles
+    - Research papers
+    - Documentation
+    - Any large text content
+    """
+    start_time = time.perf_counter()
+    errors = []
+    
+    # Get API key
+    api_key = request.api_key or os.getenv("AI_GATEWAY_API_KEY") or DEFAULT_AI_GATEWAY_KEY
+    
+    try:
+        from engine.llm import LLMEngine
+        llm = LLMEngine(api_key=api_key, model=request.model)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to initialize LLM engine: {str(e)}"
+        )
+    
+    # Process unstructured data with LLM
+    try:
+        extracted = llm.process_unstructured(request.text)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"LLM processing failed: {str(e)}"
+        )
+    
+    summary = extracted.get("summary", "")
+    raw_nodes = extracted.get("nodes", [])
+    raw_edges = extracted.get("edges", [])
+    
+    # Create nodes
+    nodes_created = 0
+    nodes_failed = 0
+    node_id_map = {}  # Map index to actual node ID
+    
+    # Prepare texts for batch embedding
+    texts = [n.get("text", "")[:2000] for n in raw_nodes if n.get("text")]
+    
+    # Generate embeddings in batch
+    embeddings = None
+    if texts:
+        try:
+            embeddings = embedding_engine.embed_batch(texts, show_progress=False)
+        except Exception as e:
+            errors.append(f"Embedding generation failed: {str(e)}")
+    
+    # Create nodes
+    for i, node_data in enumerate(raw_nodes):
+        node_text = node_data.get("text", "")
+        if not node_text or len(node_text) < 10:
+            nodes_failed += 1
+            continue
+        
+        node_id = f"node_{uuid.uuid4().hex[:12]}"
+        node_id_map[i] = node_id
+        
+        metadata = node_data.get("metadata", {})
+        if not isinstance(metadata, dict):
+            metadata = {}
+        metadata["source"] = "llm_extraction"
+        metadata["summary_context"] = summary[:200]
+        
+        try:
+            embedding = embeddings[i] if embeddings is not None and i < len(embeddings) else None
+            
+            sqlite_store.create_node(
+                node_id=node_id,
+                text=node_text[:5000],
+                metadata=metadata,
+                embedding=embedding
+            )
+            
+            graph_index.add_node(node_id)
+            
+            if embedding is not None:
+                vector_index.add(node_id, embedding)
+            
+            nodes_created += 1
+            
+        except Exception as e:
+            errors.append(f"Failed to create node {i}: {str(e)}")
+            nodes_failed += 1
+    
+    # Create edges
+    edges_created = 0
+    edges_failed = 0
+    
+    for edge_data in raw_edges:
+        source_idx = edge_data.get("source_index")
+        target_idx = edge_data.get("target_index")
+        
+        if source_idx is None or target_idx is None:
+            edges_failed += 1
+            continue
+        
+        source_id = node_id_map.get(source_idx)
+        target_id = node_id_map.get(target_idx)
+        
+        if not source_id or not target_id:
+            edges_failed += 1
+            continue
+        
+        edge_id = f"edge_{uuid.uuid4().hex[:12]}"
+        edge_type = edge_data.get("type", "relates_to")
+        weight = edge_data.get("weight", 0.5)
+        
+        try:
+            sqlite_store.create_edge(
+                edge_id=edge_id,
+                source_id=source_id,
+                target_id=target_id,
+                edge_type=edge_type,
+                weight=float(weight) if isinstance(weight, (int, float)) else 0.5,
+                metadata={"reasoning": edge_data.get("reasoning", "")}
+            )
+            
+            graph_index.add_edge(
+                edge_id=edge_id,
+                source_id=source_id,
+                target_id=target_id,
+                edge_type=edge_type,
+                weight=float(weight) if isinstance(weight, (int, float)) else 0.5
+            )
+            
+            edges_created += 1
+            
+        except Exception as e:
+            errors.append(f"Failed to create edge: {str(e)}")
+            edges_failed += 1
+    
+    # Invalidate cache
+    invalidate_cache()
+    
+    elapsed = (time.perf_counter() - start_time) * 1000
+    
+    # Collect entity info for response
+    extracted_entities = []
+    for i, node_data in enumerate(raw_nodes[:20]):
+        if i in node_id_map:
+            extracted_entities.append({
+                "node_id": node_id_map[i],
+                "text_preview": node_data.get("text", "")[:100],
+                "metadata": node_data.get("metadata", {})
+            })
+    
+    logger.info(
+        f"Unstructured import: {nodes_created} nodes, {edges_created} edges in {elapsed:.0f}ms"
+    )
+    
+    return UnstructuredDataResult(
+        success=nodes_failed == 0 and edges_failed == 0,
+        summary=summary,
+        nodes_created=nodes_created,
+        edges_created=edges_created,
+        nodes_failed=nodes_failed,
+        edges_failed=edges_failed,
+        extracted_entities=extracted_entities,
+        errors=errors[:10],
+        elapsed_ms=round(elapsed, 2)
     )
 
 

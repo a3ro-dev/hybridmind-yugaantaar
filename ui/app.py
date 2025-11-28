@@ -1169,8 +1169,174 @@ def render_edges_explorer():
 
 
 def render_bulk_import():
-    """Bulk data import."""
-    st.caption("Bulk import nodes and edges")
+    """Bulk data import including LLM-powered unstructured data processing."""
+    
+    import_tabs = st.tabs(["📝 Unstructured Data", "📦 JSON Import"])
+    
+    with import_tabs[0]:
+        render_unstructured_import()
+    
+    with import_tabs[1]:
+        render_json_import()
+
+
+def render_unstructured_import():
+    """LLM-powered unstructured data import."""
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, rgba(163, 113, 247, 0.1) 0%, rgba(88, 166, 255, 0.1) 100%); 
+                border: 1px solid rgba(163, 113, 247, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+        <h4 style="margin: 0; color: #a371f7;">🧠 AI-Powered Knowledge Extraction</h4>
+        <p style="color: #8b949e; font-size: 0.85rem; margin: 8px 0 0 0;">
+            Paste any text — articles, documents, notes — and let Gemini extract structured knowledge automatically.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Large text area for unstructured data
+    unstructured_text = st.text_area(
+        "Paste your text here",
+        height=300,
+        placeholder="""Paste any unstructured text here...
+
+Examples:
+• Wikipedia articles
+• Research paper abstracts
+• Documentation
+• Meeting notes
+• Any text content
+
+The AI will automatically:
+✓ Extract key entities and concepts
+✓ Create knowledge nodes
+✓ Identify relationships between concepts
+✓ Build a searchable knowledge graph""",
+        key="unstructured_input"
+    )
+    
+    # Advanced options in expander
+    with st.expander("⚙️ Advanced Options"):
+        c1, c2 = st.columns(2)
+        with c1:
+            model = st.selectbox(
+                "Model",
+                [
+                    "google/gemini-3-pro-preview",
+                    "google/gemini-2.5-flash-preview-05-20",
+                    "openai/gpt-4o",
+                    "openai/gpt-4o-mini",
+                    "anthropic/claude-sonnet-4",
+                    "xai/grok-3"
+                ],
+                index=0,
+                key="llm_model"
+            )
+        with c2:
+            custom_api_key = st.text_input(
+                "Custom API Key (optional)",
+                type="password",
+                placeholder="Leave empty to use default",
+                key="custom_api_key"
+            )
+    
+    # Character count
+    char_count = len(unstructured_text) if unstructured_text else 0
+    st.caption(f"📊 {char_count:,} characters | Max: 100,000")
+    
+    # Process button
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        process_btn = st.button(
+            "🚀 Extract Knowledge",
+            type="primary",
+            key="process_unstructured",
+            disabled=char_count < 50
+        )
+    
+    if process_btn:
+        if char_count < 50:
+            st.warning("Please enter at least 50 characters of text")
+            return
+        
+        with st.spinner("🧠 AI is analyzing your text and extracting knowledge..."):
+            payload = {
+                "text": unstructured_text,
+                "model": model
+            }
+            if custom_api_key:
+                payload["api_key"] = custom_api_key
+            
+            result = api_call("/bulk/unstructured", method="POST", data=payload, timeout=120)
+        
+        if result:
+            # Success/failure status
+            if result.get("success"):
+                st.success("✅ Knowledge extraction complete!")
+            else:
+                st.warning("⚠️ Completed with some issues")
+            
+            # Summary
+            if result.get("summary"):
+                st.markdown(f"""
+                <div style="background: var(--bg-secondary); border-left: 3px solid #58a6ff; 
+                            padding: 12px 16px; border-radius: 4px; margin: 12px 0;">
+                    <p style="color: #8b949e; font-size: 0.75rem; margin: 0 0 4px 0;">SUMMARY</p>
+                    <p style="color: #e6edf3; margin: 0;">{result.get('summary')}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Metrics
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Nodes Created", result.get("nodes_created", 0))
+            c2.metric("Edges Created", result.get("edges_created", 0))
+            c3.metric("Processing Time", f"{result.get('elapsed_ms', 0):.0f}ms")
+            c4.metric("Status", "✓" if result.get("success") else "⚠")
+            
+            # Extracted entities preview
+            entities = result.get("extracted_entities", [])
+            if entities:
+                st.markdown("**📋 Extracted Knowledge Nodes**")
+                for i, entity in enumerate(entities[:10], 1):
+                    metadata = entity.get("metadata", {})
+                    node_type = metadata.get("type", "unknown")
+                    importance = metadata.get("importance", "medium")
+                    
+                    type_colors = {
+                        "fact": "#3fb950",
+                        "concept": "#a371f7", 
+                        "entity": "#58a6ff",
+                        "event": "#d29922",
+                        "definition": "#39c5cf"
+                    }
+                    color = type_colors.get(node_type, "#8b949e")
+                    
+                    st.markdown(f"""
+                    <div style="background: var(--bg-secondary); border: 1px solid var(--border); 
+                                border-radius: 6px; padding: 10px 14px; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #e6edf3; font-weight: 500;">{i}. {entity.get('text_preview', '')[:80]}...</span>
+                            <span style="background: {color}22; color: {color}; padding: 2px 8px; 
+                                         border-radius: 4px; font-size: 0.7rem; font-weight: 500;">
+                                {node_type.upper()}
+                            </span>
+                        </div>
+                        <code style="color: #8b949e; font-size: 0.75rem;">{entity.get('node_id', '')}</code>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                if len(entities) > 10:
+                    st.caption(f"... and {len(entities) - 10} more nodes")
+            
+            # Errors
+            errors = result.get("errors", [])
+            if errors:
+                with st.expander(f"⚠️ {len(errors)} Warning(s)"):
+                    for error in errors:
+                        st.warning(error)
+
+
+def render_json_import():
+    """Traditional JSON bulk import."""
+    st.caption("Import structured JSON data for nodes and edges")
     
     c1, c2 = st.columns(2)
     
