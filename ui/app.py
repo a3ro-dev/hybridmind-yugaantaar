@@ -466,7 +466,7 @@ def display_search_results(results: dict, client_time: float, score_key: str = "
         rows.append(row)
     
     df = pd.DataFrame(rows)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width="stretch", hide_index=True)
     
     # Score distribution
     if show_breakdown and len(items) > 1:
@@ -480,7 +480,7 @@ def display_search_results(results: dict, client_time: float, score_key: str = "
         fig = px.box(pd.DataFrame(score_data), x="Type", y="Score", color="Type",
                      color_discrete_map={"Vector": "#58a6ff", "Graph": "#3fb950", "CRS": "#a371f7"})
         fig.update_layout(height=250, showlegend=False, margin=dict(t=10, b=10))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 
 # ============================================================================
@@ -668,7 +668,7 @@ def display_comparison_results(result: dict):
             xaxis_title="",
             yaxis_title="Latency (ms)"
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     with c2:
         st.metric("Fastest", latency.get("fastest", "-").upper())
@@ -883,7 +883,7 @@ def display_benchmark_results(result: dict):
             })
     
     df = pd.DataFrame(latency_rows)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width="stretch", hide_index=True)
     
     # Latency bar chart
     st.markdown("**Average Latency Comparison**")
@@ -925,7 +925,7 @@ def display_benchmark_results(result: dict):
             yaxis_title="Latency (ms)"
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     # Throughput chart
     st.markdown("**Throughput (Queries/Second)**")
@@ -957,7 +957,7 @@ def display_benchmark_results(result: dict):
             showlegend=False,
             yaxis_title="Queries per Second"
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 
 # ============================================================================
@@ -1007,7 +1007,7 @@ def render_health_tab():
         })
     
     if comp_data:
-        st.dataframe(pd.DataFrame(comp_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(comp_data), width="stretch", hide_index=True)
     
     # Readiness
     if ready:
@@ -1061,7 +1061,7 @@ def render_performance_tab():
             color_discrete_sequence=["#58a6ff", "#3fb950", "#a371f7", "#d29922"]
         )
         fig.update_layout(height=250, margin=dict(t=10, b=10))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 
 def render_components_tab():
@@ -1096,7 +1096,7 @@ def render_components_tab():
         {"Component": "sentence-transformers", "Purpose": "Embedding generation"},
         {"Component": "FastAPI", "Purpose": "REST API framework"},
     ]
-    st.dataframe(pd.DataFrame(versions), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(versions), width="stretch", hide_index=True)
 
 
 # ============================================================================
@@ -1142,7 +1142,7 @@ def render_nodes_explorer():
                 }
                 for n in nodes
             ])
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            st.dataframe(df, width="stretch", hide_index=True)
         else:
             st.info("No nodes")
 
@@ -1163,7 +1163,7 @@ def render_edges_explorer():
                 }
                 for e in edges
             ])
-            st.dataframe(df, use_container_width=True, hide_index=True)
+            st.dataframe(df, width="stretch", hide_index=True)
         else:
             st.info("No edges for this node")
 
