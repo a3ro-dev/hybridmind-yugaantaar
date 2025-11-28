@@ -10,10 +10,10 @@ services:
       - hybridmind_data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
     restart: unless-stopped
 
   ui:

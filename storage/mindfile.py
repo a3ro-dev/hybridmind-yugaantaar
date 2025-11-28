@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 MIND_EXTENSION = ".mind"
 MANIFEST_FILE = "manifest.json"
 SQLITE_FILE = "store.db"
-VECTOR_INDEX_FILE = "vectors.faiss"
+VECTOR_INDEX_FILE = "vectors"  # Base name - VectorIndex adds .faiss extension
 VECTOR_MAP_FILE = "vectors.map"
 GRAPH_FILE = "graph.nx"
 
