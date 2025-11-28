@@ -1185,10 +1185,7 @@ def render_unstructured_import():
     st.markdown("""
     <div style="background: linear-gradient(135deg, rgba(163, 113, 247, 0.1) 0%, rgba(88, 166, 255, 0.1) 100%); 
                 border: 1px solid rgba(163, 113, 247, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-        <h4 style="margin: 0; color: #a371f7;">🧠 AI-Powered Knowledge Extraction</h4>
-        <p style="color: #8b949e; font-size: 0.85rem; margin: 8px 0 0 0;">
-            Paste any text — articles, documents, notes — and let Gemini extract structured knowledge automatically.
-        </p>
+        <h4 style="margin: 0; color: #a371f7;">Unstructured Data</h4>
     </div>
     """, unsafe_allow_html=True)
     
@@ -1196,25 +1193,12 @@ def render_unstructured_import():
     unstructured_text = st.text_area(
         "Paste your text here",
         height=300,
-        placeholder="""Paste any unstructured text here...
-
-Examples:
-• Wikipedia articles
-• Research paper abstracts
-• Documentation
-• Meeting notes
-• Any text content
-
-The AI will automatically:
-✓ Extract key entities and concepts
-✓ Create knowledge nodes
-✓ Identify relationships between concepts
-✓ Build a searchable knowledge graph""",
+        placeholder="Paste any unstructured text here...",
         key="unstructured_input"
     )
     
     # Advanced options in expander
-    with st.expander("⚙️ Advanced Options"):
+    with st.expander("Advanced Options"):
         c1, c2 = st.columns(2)
         with c1:
             model = st.selectbox(
