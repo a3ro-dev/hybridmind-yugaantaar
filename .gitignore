@@ -90,7 +90,7 @@ hybridmind/test_data/
 
 # Model cache
 .cache/
-models/
+
 
 # OS
 .DS_Store
