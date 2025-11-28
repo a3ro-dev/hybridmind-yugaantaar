@@ -221,7 +221,7 @@ DEFAULT_API_URL = os.environ.get("API_URL", "http://localhost:8000")
 API_URL = st.sidebar.text_input("API", value=DEFAULT_API_URL, label_visibility="collapsed")
 
 
-def api_call(endpoint: str, method: str = "GET", data: dict = None, timeout: int = 30) -> Optional[Dict]:
+def api_call(endpoint: str, method: str = "GET", data: dict = None, timeout: int = 30):
     """Execute API request with timing."""
     try:
         url = f"{API_URL}{endpoint}"
@@ -233,7 +233,9 @@ def api_call(endpoint: str, method: str = "GET", data: dict = None, timeout: int
         elapsed = (time.perf_counter() - start) * 1000
         response.raise_for_status()
         result = response.json()
-        result["_client_latency_ms"] = elapsed
+        # Only add latency to dict responses, not lists
+        if isinstance(result, dict):
+            result["_client_latency_ms"] = elapsed
         return result
     except requests.exceptions.ConnectionError:
         return None
