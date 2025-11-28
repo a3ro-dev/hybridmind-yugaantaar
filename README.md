@@ -2,9 +2,9 @@
 
 **Vector + Graph Native Database** for AI Retrieval — Devfolio Problem Statement 1
 
-> 🧠 Hybrid retrieval combining semantic vector search with graph relationships using the **CRS Algorithm**.
+> Hybrid retrieval combining semantic vector search with graph relationships using the **CRS Algorithm**.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Install dependencies
@@ -24,12 +24,12 @@ streamlit run ui/app.py
 ```
 
 **Access:**
-- 📖 API Docs: http://localhost:8000/docs
-- 🖥️ UI Dashboard: http://localhost:8501
+- API Docs: http://localhost:8000/docs
+- UI Dashboard: http://localhost:8501
 
 ---
 
-## 📋 Problem Statement Compliance
+## Problem Statement Compliance
 
 | Requirement | Implementation |
 |-------------|----------------|
@@ -44,7 +44,7 @@ streamlit run ui/app.py
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Node CRUD
 
@@ -111,7 +111,7 @@ CRS = α × vector_score + β × graph_score
 
 ---
 
-## 🧮 CRS Algorithm
+## CRS Algorithm
 
 The **Contextual Relevance Score** combines semantic similarity with graph relationships:
 
@@ -133,7 +133,7 @@ Where:
 
 ---
 
-## 📊 Proving Hybrid Effectiveness
+## Proving Hybrid Effectiveness
 
 ### Quantitative Metrics
 
@@ -159,7 +159,7 @@ curl http://localhost:8000/comparison/effectiveness/summary
 
 ---
 
-## 📁 The `.mind` File Format
+## The `.mind` File Format
 
 HybridMind uses **`.mind`** as its native database format:
 
@@ -181,7 +181,7 @@ python -m cli.mind export data/hybridmind.mind backup.mind.zip
 
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 yugaantar/
@@ -212,7 +212,7 @@ yugaantar/
 
 ---
 
-## 🐳 Docker
+## Docker
 
 ```bash
 docker-compose up --build
@@ -220,7 +220,7 @@ docker-compose up --build
 
 ---
 
-## ✅ Testing
+## Testing
 
 ```bash
 # Run all tests
@@ -232,20 +232,20 @@ python data/test_endpoints.py
 
 ---
 
-## 📈 Evaluation Criteria Mapping
+## Evaluation Criteria Mapping
 
 ### Round 1: Technical Qualifier (50 pts)
-- ✅ **Core functionality (20 pts)**: Full CRUD, vector search, graph traversal
-- ✅ **Hybrid retrieval logic (10 pts)**: CRS algorithm with configurable weights
-- ✅ **API quality (10 pts)**: FastAPI with OpenAPI docs, clear structure
-- ✅ **Performance (10 pts)**: Query caching, GPU support, <100ms latency
+- **Core functionality (20 pts)**: Full CRUD, vector search, graph traversal
+- **Hybrid retrieval logic (10 pts)**: CRS algorithm with configurable weights
+- **API quality (10 pts)**: FastAPI with OpenAPI docs, clear structure
+- **Performance (10 pts)**: Query caching, GPU support, <100ms latency
 
 ### Round 2: Final Demo (100 pts)
-- ✅ **Real-world demo (30 pts)**: ArXiv paper search with semantic edges
-- ✅ **Hybrid effectiveness (25 pts)**: Quantitative proof via `/comparison/effectiveness`
-- ✅ **System design (20 pts)**: CRS algorithm, `.mind` format, ablation study
-- ✅ **Code quality (15 pts)**: Modular architecture, typed, tested
-- ✅ **Presentation (10 pts)**: Interactive UI, comprehensive docs
+- **Real-world demo (30 pts)**: ArXiv paper search with semantic edges
+- **Hybrid effectiveness (25 pts)**: Quantitative proof via `/comparison/effectiveness`
+- **System design (20 pts)**: CRS algorithm, `.mind` format, ablation study
+- **Code quality (15 pts)**: Modular architecture, typed, tested
+- **Presentation (10 pts)**: Interactive UI, comprehensive docs
 
 ---
 

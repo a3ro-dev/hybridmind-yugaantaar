@@ -58,14 +58,14 @@ async def lifespan(app: FastAPI):
     global _startup_time, _model_loaded
     
     startup_start = time.perf_counter()
-    logger.info("🔥 Warming up HybridMind...")
+    logger.info("Warming up HybridMind...")
     
     # Step 1: Get database manager (triggers all component initialization)
-    logger.info("  📦 Initializing storage components...")
+    logger.info("  Initializing storage components...")
     db_manager = get_db_manager()
     
     # Step 2: Force embedding model load with warmup query
-    logger.info("  🧠 Loading embedding model...")
+    logger.info("  Loading embedding model...")
     warmup_start = time.perf_counter()
     
     embedding_engine = db_manager.embedding_engine
@@ -74,12 +74,12 @@ async def lifespan(app: FastAPI):
         _ = embedding_engine.embed("warmup query for model initialization")
         _model_loaded = True
         warmup_time = (time.perf_counter() - warmup_start) * 1000
-        logger.info(f"  ✓ Embedding model loaded in {warmup_time:.0f}ms")
+        logger.info(f"  Embedding model loaded in {warmup_time:.0f}ms")
     else:
-        logger.warning("  ⚠ Embedding model not available, using mock embeddings")
+        logger.warning("  Embedding model not available, using mock embeddings")
     
     # Step 3: Initialize query cache
-    logger.info("  💾 Initializing query cache...")
+    logger.info("  Initializing query cache...")
     cache = get_query_cache(
         maxsize=settings.cache_size,
         ttl=300  # 5 minute TTL
@@ -90,10 +90,10 @@ async def lifespan(app: FastAPI):
     total_startup = (time.perf_counter() - startup_start) * 1000
     _startup_time = time.time()
     
-    logger.info(f"✅ HybridMind ready in {total_startup:.0f}ms")
-    logger.info(f"   📊 Loaded: {stats['total_nodes']} nodes, {stats['total_edges']} edges")
-    logger.info(f"   🔢 Vector index: {stats['vector_index_size']} embeddings")
-    logger.info(f"   🕸️  Graph index: {stats['graph_node_count']} nodes, {stats['graph_edge_count']} edges")
+    logger.info(f"HybridMind ready in {total_startup:.0f}ms")
+    logger.info(f"   Loaded: {stats['total_nodes']} nodes, {stats['total_edges']} edges")
+    logger.info(f"   Vector index: {stats['vector_index_size']} embeddings")
+    logger.info(f"   Graph index: {stats['graph_node_count']} nodes, {stats['graph_edge_count']} edges")
     
     yield
     

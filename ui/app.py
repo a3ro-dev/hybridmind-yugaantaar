@@ -584,7 +584,7 @@ def render_comparison_search():
         g_weight = st.slider("β (HybridMind graph)", 0.0, 1.0, 0.4, 0.05, key="cmp_g")
     
     # Sample queries
-    with st.expander("📝 Sample Queries"):
+    with st.expander("Sample Queries"):
         samples = api_call("/comparison/sample-queries")
         if samples:
             st.markdown("**Semantic:**")
@@ -599,7 +599,7 @@ def render_comparison_search():
                     st.session_state["cmp_q"] = q
                     st.rerun()
     
-    if st.button("🔍 Compare", key="cmp_btn", type="primary"):
+    if st.button("Compare", key="cmp_btn", type="primary"):
         if not query:
             st.warning("Enter a query")
             return
@@ -783,7 +783,7 @@ def render_benchmark():
         ]
         st.info(f"Using {len(queries)} default test queries")
     
-    if st.button("🚀 Run Benchmark", key="bench_run", type="primary"):
+    if st.button("Run Benchmark", key="bench_run", type="primary"):
         if not queries:
             st.warning("No queries specified")
             return
