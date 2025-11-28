@@ -1,0 +1,50 @@
+=== STDOUT ===
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-9.0.1, pluggy-1.6.0 -- D:\yugaantar\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: d:\yugaantar
+configfile: pytest.ini
+plugins: anyio-4.11.0, asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 34 items
+
+tests/test_api_crud.py::TestCreateNode::test_create_node_basic PASSED    [  2%]
+tests/test_api_crud.py::TestCreateNode::test_create_node_verify_retrieval PASSED [  5%]
+tests/test_api_crud.py::TestReadNodeWithRelationships::test_read_node_with_edges PASSED [  8%]
+tests/test_api_crud.py::TestUpdateNode::test_update_node_text PASSED     [ 11%]
+tests/test_api_crud.py::TestUpdateNode::test_update_nonexistent_node_returns_404 PASSED [ 14%]
+tests/test_api_crud.py::TestDeleteNodeCascade::test_delete_node_cascades_edges PASSED [ 17%]
+tests/test_api_crud.py::TestDeleteNodeCascade::test_delete_nonexistent_node_returns_404 PASSED [ 20%]
+tests/test_api_crud.py::TestEdgeCRUD::test_create_edge PASSED            [ 23%]
+tests/test_api_crud.py::TestEdgeCRUD::test_get_edge PASSED               [ 26%]
+tests/test_api_crud.py::TestEdgeCRUD::test_update_edge_weight PASSED     [ 29%]
+tests/test_api_crud.py::TestEdgeCRUD::test_delete_edge PASSED            [ 32%]
+tests/test_api_crud.py::TestEdgeCRUD::test_create_edge_invalid_source_returns_404 PASSED [ 35%]
+tests/test_canonical_dataset.py::TestVectorOnlyCanonical::test_vector_search_ordering PASSED [ 38%]
+tests/test_canonical_dataset.py::TestGraphOnlyCanonical::test_graph_traversal_from_doc6 PASSED [ 41%]
+tests/test_canonical_dataset.py::TestHybridCanonical::test_hybrid_search_with_weights PASSED [ 44%]
+tests/test_canonical_dataset.py::TestHybridCanonical::test_hybrid_results_sorted PASSED [ 47%]
+tests/test_canonical_dataset.py::TestCRUDCanonical::test_create_node_example PASSED [ 50%]
+tests/test_canonical_dataset.py::TestCRUDCanonical::test_get_node_with_edges PASSED [ 52%]
+tests/test_canonical_dataset.py::TestGraphProximityScore::test_graph_score_formula PASSED [ 55%]
+tests/test_canonical_dataset.py::TestGraphProximityScore::test_hybrid_score_formula PASSED [ 58%]
+tests/test_graph_traversal.py::TestGraphTraversalBFS::test_depth_limited_traversal PASSED [ 61%]
+tests/test_graph_traversal.py::TestGraphTraversalEdgeTypeFilter::test_filter_by_edge_type PASSED [ 64%]
+tests/test_graph_traversal.py::TestGraphTraversalCycleHandling::test_cycle_does_not_cause_infinite_loop PASSED [ 67%]
+tests/test_hybrid_search.py::TestHybridWeightedMerge::test_hybrid_returns_combined_scores PASSED [ 70%]
+tests/test_hybrid_search.py::TestHybridWeightedMerge::test_combined_score_formula PASSED [ 73%]
+tests/test_hybrid_search.py::TestHybridTuningExtremes::test_vector_weight_1_graph_weight_0 PASSED [ 76%]
+tests/test_hybrid_search.py::TestHybridTuningExtremes::test_vector_weight_0_graph_weight_1 PASSED [ 79%]
+tests/test_hybrid_search.py::TestHybridRelationshipWeighted::test_edge_weight_affects_ranking PASSED [ 82%]
+tests/test_hybrid_search.py::TestHybridSearchResponseFormat::test_response_contains_required_fields PASSED [ 85%]
+tests/test_hybrid_search.py::TestHybridSearchResponseFormat::test_results_ordered_by_combined_score PASSED [ 88%]
+tests/test_vector_search.py::TestVectorSearchOrdering::test_top_k_ordering_basic PASSED [ 91%]
+tests/test_vector_search.py::TestVectorSearchOrdering::test_vector_search_response_format PASSED [ 94%]
+tests/test_vector_search.py::TestVectorSearchKGreaterThanDataset::test_top_k_exceeds_dataset_size PASSED [ 97%]
+tests/test_vector_search.py::TestVectorSearchMetadataFilter::test_filter_by_metadata_type PASSED [100%]
+
+============================= 34 passed in 6.56s ==============================
+
+=== STDERR ===
+
+=== EXIT CODE: 0 ===
