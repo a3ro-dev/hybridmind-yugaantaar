@@ -1,6 +1,4 @@
 # HybridMind Development
-version: "3.8"
-
 services:
   api:
     build:
@@ -9,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./data:/app/data
+      - hybridmind_data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
       interval: 30s
@@ -31,3 +29,6 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  hybridmind_data:

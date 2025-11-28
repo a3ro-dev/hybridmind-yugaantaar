@@ -216,8 +216,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Configuration
-API_URL = st.sidebar.text_input("API", value="http://localhost:8000", label_visibility="collapsed")
+# Configuration - use environment variable for Docker, fallback to localhost for local dev
+DEFAULT_API_URL = os.environ.get("API_URL", "http://localhost:8000")
+API_URL = st.sidebar.text_input("API", value=DEFAULT_API_URL, label_visibility="collapsed")
 
 
 def api_call(endpoint: str, method: str = "GET", data: dict = None, timeout: int = 30) -> Optional[Dict]:

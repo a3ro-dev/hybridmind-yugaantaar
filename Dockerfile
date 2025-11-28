@@ -19,9 +19,6 @@ COPY . .
 # Create data directory
 RUN mkdir -p /app/data
 
-# Load demo data during build
-RUN python data/load_demo_data.py --papers 150 --clear
-
 EXPOSE 8000
 
 # Health check
