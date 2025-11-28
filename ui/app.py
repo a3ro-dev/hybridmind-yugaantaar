@@ -573,8 +573,19 @@ def render_comparison_search():
     """Side-by-side search comparison."""
     st.markdown("#### Search Comparison")
     
+    # Initialize selected query state
+    if "selected_sample_query" not in st.session_state:
+        st.session_state["selected_sample_query"] = ""
+    
+    # Use selected sample query as default if set
+    default_query = st.session_state.get("selected_sample_query", "")
+    
     # Query input
-    query = st.text_input("Query", placeholder="Enter search query...", key="cmp_q")
+    query = st.text_input("Query", value=default_query, placeholder="Enter search query...", key="cmp_q")
+    
+    # Clear the selected query after it's been used
+    if st.session_state["selected_sample_query"]:
+        st.session_state["selected_sample_query"] = ""
     
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -591,13 +602,13 @@ def render_comparison_search():
             st.markdown("**Semantic:**")
             for q in samples.get("semantic_queries", [])[:3]:
                 if st.button(q, key=f"sq_{q[:10]}"):
-                    st.session_state["cmp_q"] = q
+                    st.session_state["selected_sample_query"] = q
                     st.rerun()
             
             st.markdown("**Technical:**")
             for q in samples.get("specific_queries", [])[:3]:
                 if st.button(q, key=f"tq_{q[:10]}"):
-                    st.session_state["cmp_q"] = q
+                    st.session_state["selected_sample_query"] = q
                     st.rerun()
     
     if st.button("Compare", key="cmp_btn", type="primary"):
