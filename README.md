@@ -232,21 +232,4 @@ python data/test_endpoints.py
 
 ---
 
-## Evaluation Criteria Mapping
-
-### Round 1: Technical Qualifier (50 pts)
-- **Core functionality (20 pts)**: Full CRUD, vector search, graph traversal
-- **Hybrid retrieval logic (10 pts)**: CRS algorithm with configurable weights
-- **API quality (10 pts)**: FastAPI with OpenAPI docs, clear structure
-- **Performance (10 pts)**: Query caching, GPU support, <100ms latency
-
-### Round 2: Final Demo (100 pts)
-- **Real-world demo (30 pts)**: ArXiv paper search with semantic edges
-- **Hybrid effectiveness (25 pts)**: Quantitative proof via `/comparison/effectiveness`
-- **System design (20 pts)**: CRS algorithm, `.mind` format, ablation study
-- **Code quality (15 pts)**: Modular architecture, typed, tested
-- **Presentation (10 pts)**: Interactive UI, comprehensive docs
-
----
-
 **DevForge Hackathon** | Team CodeHashira
