@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "name": "hybridmind",
   "created": "2025-11-27T19:25:52.954338",
-  "modified": "2025-11-28T02:50:36.992966+00:00",
+  "modified": "2025-11-28T02:52:41.394829+00:00",
   "components": {
     "sqlite": "store.db",
     "vector_index": "vectors.faiss",
